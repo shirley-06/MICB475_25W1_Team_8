@@ -19,5 +19,5 @@
   
 #### Action Items
 - Explore datasets and brainstorm potential research question
-    - Compile new datasets and send them to Dr.Sun Friday EOD
+    - Compile new datasets and send them to Dr. Sun Friday EOD
 - Add Chad to the repository
