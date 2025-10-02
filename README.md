@@ -1,4 +1,23 @@
 # MICB 475: Data Science Reserach in Microbiology
-## Meeting Agenda and Meeting Minutes
-### October
-[Oct 1](Meeting_Minutes/2025-10-01.md)
+## Meeting Agenda and Minutes
+
+### October 8, 2025
+#### Agenda
+- Discuss/confirm project 2 dataset
+
+
+
+
+### October 1, 2025
+#### Minutes
+- For each meeting:
+    - Prepare an agenda
+        - ensure to complete the night before
+    - Assign someone to take meeting minutes
+ - Discussed interest in medical microbiome datasets
+     - Briefly looked at a few datasets from NASA data repository
+  
+#### Action Items
+- Explore datasets and brainstorm potential research question
+    - Compile new datasets and send them to Dr.Sun Friday EOD
+- Add Chad to the repository
