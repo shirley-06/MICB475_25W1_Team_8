@@ -3,7 +3,10 @@
 
 ### October 8, 2025
 #### Agenda
-- Discuss/confirm project 2 dataset
+- Confirm project 2 dataset
+- Discuss project 2 timeline
+
+
 
 
 
