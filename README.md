@@ -9,8 +9,34 @@ https://pmc.ncbi.nlm.nih.gov/articles/PMC10832965/#s0004
 - Confirm project 2 dataset
 - Discuss project 2 timeline
 
+#### Minutes
+
+Project 2 dataset: [Impact of fresh and fermented vegetable consumption on gut microbiota and body composition: insights from diverse data analysis approaches](https://www.frontiersin.org/journals/nutrition/articles/10.3389/fnut.2025.1623710/full#supplementary-material)
 
 
+- Reviewed study design and microbiome analysis methodology from the paper 
+    - Paper mainly looked at relative abundance diversity
+    - Lots of individual data present
+    - Identified gaps for deeper exploration
+- Brainstormed areas of focus for project 2
+    - Perform a more in-depth analysis than the original study
+    - Potential analytical directions:  
+        - Core analysis
+        - Indicator analysis
+        - Functional analysis (performed using picrust2 - see module 19)
+        - Paired analysis
+        - Longitudinal analysis
+    - Use strident cutoffs, controlling for sex, antibiotics, constipation
+    - Compare pre/post dietary intervention
+    - Investigate changes during washout periods - do the communities persist?
+- Project 2 proposal is due Oct 26
+      - QIIME2 workflow needs to be completed for the proposal
+
+#### Action Items
+- Look through the dataset and begin QIIME2 workflow (Dr. Sun will notify us it has been uploaded to the server)
+- Begin background research for the proposal
+- Review all the suggested analysis methods
+    -  Review longitudinal analysis from the paper Chad shared 
 
 
 
