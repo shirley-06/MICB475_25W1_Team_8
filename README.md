@@ -1,10 +1,17 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
 
+### October 15, 2025
+#### Agenda
+- QIIME2 dataset processing updates
+#### Minutes
+
+
+### October 8, 2025
 From chad: 
 look at the analyses done in this longitudinal study
 https://pmc.ncbi.nlm.nih.gov/articles/PMC10832965/#s0004
-### October 8, 2025
+
 #### Agenda
 - Confirm project 2 dataset
 - Discuss project 2 timeline
