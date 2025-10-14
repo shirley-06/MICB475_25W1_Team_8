@@ -4,6 +4,8 @@
 ### October 15, 2025
 #### Agenda
 - QIIME2 dataset processing updates
+- Questions about workflow for paired end sequences
+- Trimming based on demux.qzv plot
 #### Minutes
 
 
