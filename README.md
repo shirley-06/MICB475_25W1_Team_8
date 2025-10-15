@@ -6,7 +6,29 @@
 - QIIME2 dataset processing updates
 - Questions about workflow for paired end sequences
 - Trimming based on demux.qzv plot
+
 #### Minutes
+- Follow paired-end reads protocol on Qiime site
+- Upload Qiime code onto Github figure out how to push and pull
+- Analyzing before and after eating fresh and fermented veggies
+- Washout period is important to see if the effects on micromebiodiversity lasts
+- Compare points 1,3,5 to see before one and after
+- Research question: Does fresh vs fermentated vegetation alter microbiome composition and function in women?
+- Can do core analysis on microbiome and do further research in literature to see if they are beneficial
+- Combine control and antibiotics into one group, vs constipation, make sure to explain logic
+- Alpha and beta diversity, including washouts, using pie crust
+- Whoever does more of the coding should do less of the proposal writing and R
+- When making presentation, make the timepoints clear, if they end up being irrelevant, label them n.s.
+- Proposal: concise introduction, ONE hypothesis: timepoints affect microbiome diversity differently across different conditions?
+
+#### Action Items
+- - For Proposal:
+- Draw analysis plans for longitudinal research and explain why
+- Background with citations, hypothesis based on existing literature
+- Dataset overview: Finish data processing up to filtering
+- Figures with subbings? using a pie crust
+- Have at least bullet points of proposal by next meeting
+- Cite the R package sources
 
 
 ### October 8, 2025
