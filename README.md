@@ -8,6 +8,8 @@
     - after denoising/clustering and looking through the table.qzv and rep-seqs.qzv files, we lost alot of samples
     - should we pre-process data in QIIME2 or R?
 - Proposal draft review
+- https://docs.google.com/document/d/1PqAiz1TGuyMDlrQcFH7Er65gwhnD7v8JqtVO9qolSq4/edit?usp=sharing
+- 
   
 #### Minutes
 
