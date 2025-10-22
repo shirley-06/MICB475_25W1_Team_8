@@ -2,6 +2,48 @@
 ## Meeting Agenda and Minutes
 
 ### October 22, 2025
+#### Minutes
+- Troubleshooted Github
+- Qiime2 denoising/clustering issue:
+    - Try another way to denoise (different parameters), save the one we already have
+    - Paired ends should not decrease this much (may be overtrimmed reverse)
+    - Try trimming at 132
+- Pre-process in R (easier than in qiime2)
+    - Eg. combining antibiotics and control
+    - Rarefy by group
+- Reviewed proposal draft:
+    - Title should be: Exploring the Influence of Fresh and Fermented Vegetables Consumption on Gut Microbiome Diversity and Function in Women
+    - Research question: Does the consumption of fresh vegetables versus fermented vegetables modulate gut microbiota dynamics and functional profiles in women over time?
+    - Experimental aims:
+          - Figure of how to do comparisons (Aim 1 vs Aim 2)
+    - Aims specific approach:
+      - Don't need to show code
+      - Just step by step on what you're going to do
+    - Can cite longtiduinal analysis from papers
+    - Research question needs to be worked on
+          - Want to compare: if FVs better than fresh vegetables at promoting a healthy gut flora
+          - Word it to comapre FVs and fresh (Eg. Promotes a healthy gut flora, better functional outcomes in women)
+          - If the changes stay longer than fresh veggies
+    - Intro: 1-1.5 pages
+          - 3 aims should be touched
+          - If any similar work has been done
+      
+#### Action Items
+- Email Evelyn about issue with QIIME2 if trimming at 132 still doesn't work
+- Proposal draft:
+    - Switch Aims 2 and 3 in terms of order
+    - Include beta diversity in Aim 1
+    - Instead of longditudinal analysis, do DeSeq instead
+    - Look at relative abunadnace and cite papers
+    - Cite packages in papers (from Youtube videos)
+    - See if any literature: if FV have a longer impact (See less changes after WO than fresh)
+    - See if any papers have done dietary interventions and see if the changes persist (major aim) and touch on the 3 aims in Intro
+    - In Intro: eg. This is what they did in FV and fresh veggies, no need to describe in detail
+    - Experimental aims: no need to talk about gender differences (not enough samples to look at both males and females, can say looking at it in context of women and its important because its sex specific) --> Looking at gut health in the context of women only, not a lot of research on women only.
+    - Have stats and steps of what you're going to do
+    - Timeline: give yourself more time (buffer time), overlap multiple aims in mutliple steps
+    - Dataset overview: Make sure each question answered
+
 #### Agenda
 - Troubleshoot Github - unable to push/pull any code
 - QIIME2 dataset update
@@ -9,9 +51,7 @@
     - should we pre-process data in QIIME2 or R?
 - Proposal draft review
 - https://docs.google.com/document/d/1PqAiz1TGuyMDlrQcFH7Er65gwhnD7v8JqtVO9qolSq4/edit?usp=sharing
-- 
   
-#### Minutes
 
 
 ### October 15, 2025
