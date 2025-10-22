@@ -4,7 +4,9 @@
 ### October 22, 2025
 #### Agenda
 - Troubleshoot Github - unable to push/pull any code
-- QIIME2 dataset update - after denoising/clustering and looking through the table.qzv and rep-seqs.qzv files, we lost alot of samples
+- QIIME2 dataset update
+    - after denoising/clustering and looking through the table.qzv and rep-seqs.qzv files, we lost alot of samples
+    - should we pre-process data in QIIME2 or R?
 - Proposal draft review
   
 #### Minutes
