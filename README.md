@@ -1,6 +1,15 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
 
+### October 22, 2025
+#### Agenda
+- Troubleshoot Github - unable to push/pull any code
+- QIIME2 dataset update - after denoising/clustering and looking through the table.qzv and rep-seqs.qzv files, we lost alot of samples
+- Proposal draft review
+  
+#### Minutes
+
+
 ### October 15, 2025
 #### Agenda
 - QIIME2 dataset processing updates
