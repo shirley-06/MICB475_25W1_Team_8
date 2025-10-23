@@ -1,1 +1,32 @@
+# Importing sequences from the fermentation dataset from the server with a manifest + demultiplexing
+qiime tools import \
+  --type "SampleData[PairedEndSequencesWithQuality]" \
+  --input-format PairedEndFastqManifestPhred33V2 \
+  --input-path /datasets/project_2/fermentation/fermentation_manifest.tsv \
+  --output-path ./demux_seqs.qza
 
+# Generating visualization file of demultiplexed sequences
+qiime demux summarize \
+  --i-data demux_seqs.qza \
+  --o-visualization demux.qzv
+
+# Determining ASVs in fermentation dataset with DADA2
+qiime dada2 denoise-paired \
+  --i-demultiplexed-seqs demux_3.qza \
+  --p-trunc-len-f 150 \
+  --p-trunc-len-r 120 \
+  --p-trim-left-f 10 \
+  --p-trim-left-r 0 \
+  --o-representative-sequences rep-seqs.qza \
+  --o-table table.qza \
+  --o-denoising-stats stats.qza
+
+# Visualize ASVs stats
+qiime feature-table summarize \
+  --i-table table.qza \
+  --o-visualization table.qzv \
+  --m-sample-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv
+  
+qiime feature-table tabulate-seqs \
+  --i-data rep-seqs.qza \
+  --o-visualization rep-seqs.qzv
