@@ -1,7 +1,20 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
 
+### October 29, 2025
+#### Agenda
+- review proposal
+
+
 ### October 22, 2025
+#### Agenda
+- Troubleshoot Github - unable to push/pull any code
+- QIIME2 dataset update
+    - after denoising/clustering and looking through the table.qzv and rep-seqs.qzv files, we lost alot of samples
+    - should we pre-process data in QIIME2 or R?
+- Proposal draft review
+- https://docs.google.com/document/d/1PqAiz1TGuyMDlrQcFH7Er65gwhnD7v8JqtVO9qolSq4/edit?usp=sharing
+
 #### Minutes
 - Troubleshooted Github
 - Qiime2 denoising/clustering issue:
@@ -43,15 +56,6 @@
     - Have stats and steps of what you're going to do
     - Timeline: give yourself more time (buffer time), overlap multiple aims in mutliple steps
     - Dataset overview: Make sure each question answered
-
-#### Agenda
-- Troubleshoot Github - unable to push/pull any code
-- QIIME2 dataset update
-    - after denoising/clustering and looking through the table.qzv and rep-seqs.qzv files, we lost alot of samples
-    - should we pre-process data in QIIME2 or R?
-- Proposal draft review
-- https://docs.google.com/document/d/1PqAiz1TGuyMDlrQcFH7Er65gwhnD7v8JqtVO9qolSq4/edit?usp=sharing
-  
 
 
 ### October 15, 2025
