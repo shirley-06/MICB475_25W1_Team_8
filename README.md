@@ -5,14 +5,14 @@
 #### Agenda
 - Review proposal (Aim 2, Timeline)
 
-#### Minutes:
+#### Minutes
 - Discuss with Hans about the dataset issues
 - If dataset issue isn't resolved by proposal due date:
       - Make note of this in the dataset overview section
       - Disuss up to the demux data file
 - For presentation (due Nov 30), the main story should be completed
 
-#### Actions:
+#### Actions Items
 - Follow up with Hans about issues with the dataset
 - Make prelimary figures for next meeting (Aim 1)
   
