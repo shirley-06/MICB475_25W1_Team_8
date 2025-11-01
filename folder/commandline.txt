@@ -43,3 +43,33 @@ qiime feature-table summarize \
  qiime metadata tabulate \
 --m-input-file dada2_stats_se.qza \
 --o-visualization dada2_stats_se.qzv
+
+# Taxonomy
+qiime feature-classifier classify-sklearn \
+  --i-classifier /datasets/classifiers/silva-138-99-515-806-nb-classifier.qza \
+  --i-reads rep_seqs_se.qza \
+  --o-classification taxonomy_se.qza
+
+qiime metadata tabulate \
+  --m-input-file taxonomy_se.qza \
+  --o-visualization taxonomy_se.qzv
+
+qiime taxa barplot \
+  --i-table table_se.qza \
+  --i-taxonomy taxonomy_se.qza \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --o-visualization taxa_bar_plot_se.qzv
+
+#Filtering out mitochondria and chloroplast
+qiime taxa filter-table \
+  --i-table table_se.qza \
+  --i-taxonomy taxonomy_se.qza \
+  --p-exclude mitochondria,chloroplast \
+  --o-filtered-table table_no_mitochondria_chloroplast_se.qza
+
+# Filtering out male samples from host_sex
+qiime feature-table filter-samples \
+  --i-table table_no_mitochondria_chloroplast_se.qza \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --p-where “[host_sex]=’female’” \
+  --o-filtered-table female_filtered_table_se.qza
