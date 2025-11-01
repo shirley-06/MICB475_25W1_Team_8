@@ -1,32 +1,45 @@
-# Importing sequences from the fermentation dataset from the server with a manifest + demultiplexing
+# Modify manifest to be appropriate for single end analysis
+awk -v OFS='\t' 'NR==1{print "sample-id","absolute-filepath"; next} {print $1,$2}' \ /datasets/project_2/fermentation/fermentation_manifest.tsv > manifest_se.tsv
+
+# Import reads into demux file
 qiime tools import \
-  --type "SampleData[PairedEndSequencesWithQuality]" \
-  --input-format PairedEndFastqManifestPhred33V2 \
-  --input-path /datasets/project_2/fermentation/fermentation_manifest.tsv \
-  --output-path ./demux_seqs.qza
+  --type 'SampleData[SequencesWithQuality]' \
+  --input-path manifest_se.tsv \
+  --input-format SingleEndFastqManifestPhred33V2 \
+  --output-path demux_se.qza
+  
+# trim the forward primer (515F) at the 5' end of R1
+qiime cutadapt trim-single \
+  --i-demultiplexed-sequences demux_se.qza \
+  --p-front GTGCCAGCMGCCGCGGTAA \
+  --p-match-read-wildcards \
+  --p-match-adapter-wildcards \
+  --p-discard-untrimmed \
+  --o-trimmed-sequences demux_se_trim.qza \
+  --verbose > cutadapt_single.log  
 
-# Generating visualization file of demultiplexed sequences
+# Convert into .qzv
 qiime demux summarize \
-  --i-data demux_seqs.qza \
-  --o-visualization demux.qzv
+--i-data demux_se_trim.qza \
+--o-visualization demux_se_trim.qzv
 
-# Determining ASVs in fermentation dataset with DADA2
-qiime dada2 denoise-paired \
-  --i-demultiplexed-seqs demux_3.qza \
-  --p-trunc-len-f 150 \
-  --p-trunc-len-r 120 \
-  --p-trim-left-f 10 \
-  --p-trim-left-r 0 \
-  --o-representative-sequences rep-seqs.qza \
-  --o-table table.qza \
-  --o-denoising-stats stats.qza
+# DADA2 single-end
+qiime dada2 denoise-single \
+  --i-demultiplexed-seqs demux_se_trim.qza \
+  --p-trim-left 0 \
+  --p-trunc-len 0 \
+  --p-max-ee 2 \
+  --p-n-threads 10 \
+  --o-table table_se.qza \
+  --o-representative-sequences rep_seqs_se.qza \
+  --o-denoising-stats dada2_stats_se.qza
 
 # Visualize ASVs stats
 qiime feature-table summarize \
-  --i-table table.qza \
-  --o-visualization table.qzv \
+  --i-table table_se.qza \
+  --o-visualization table_se_meta.qzv \
   --m-sample-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv
-  
-qiime feature-table tabulate-seqs \
-  --i-data rep-seqs.qza \
-  --o-visualization rep-seqs.qzv
+
+ qiime metadata tabulate \
+--m-input-file dada2_stats_se.qza \
+--o-visualization dada2_stats_se.qzv
