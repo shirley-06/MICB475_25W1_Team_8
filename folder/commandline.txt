@@ -73,3 +73,24 @@ qiime feature-table filter-samples \
   --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
   --p-where “[host_sex]=’female’” \
   --o-filtered-table female_filtered_table_se.qza
+
+#Filter for female participants
+qiime feature-table summarize \
+  --i-table female_filtered_table_se.qza \
+  --o-visualization female_filtered_table_se.qzv \
+  --m-sample-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv
+
+# Generate a tree for phylogenetic diversity analyses
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences rep_seqs_se.qza \
+  --o-alignment aligned_rep_seqs_se.qza \
+  --o-masked-alignment masked_aligned_rep_seqs_se.qza \
+  --o-tree unrooted_tree_se.qza \
+  --o-rooted-tree rooted_tree_se.qza 
+
+qiime diversity alpha-rarefaction \
+  --i-table table_se.qza \
+  --i-phylogeny rooted_tree_se.qza \
+  --p-max-depth 62000 \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --o-visualization alpha_rarefaction_curve.qzv
