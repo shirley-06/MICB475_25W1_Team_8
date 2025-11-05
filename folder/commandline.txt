@@ -94,3 +94,11 @@ qiime diversity alpha-rarefaction \
   --p-max-depth 62000 \
   --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
   --o-visualization alpha_rarefaction_curve.qzv
+
+#Generating core metrics
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny rooted_tree_se.qza \
+  --i-table female_filtered_table_se.qza \
+  --p-sampling-depth 35798 \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --output-dir core_metrics_results
