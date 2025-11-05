@@ -11,6 +11,10 @@ library(phyloseq)
 library(ape) # importing trees
 library(tidyverse)
 library(vegan)
+library (picante)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 
 #### Load data ####
 # Change file paths as necessary, below we are importing them as tibble
@@ -124,3 +128,91 @@ ferm_rare <- rarefy_even_depth(ps_filter, rngseed = 1, sample.size = 35798)
 ##### Saving #####
 save(ps_filter, file="ferm_final.RData")
 save(ferm_rare, file="ferm_rare.RData")
+
+
+#Alpha-Diversity
+#Shannon
+shannon_vals <- estimate_richness(ps_filter, measures = "Shannon")
+
+#Faith's PD
+faith_pd <- pd(otu_mat, phy_tree(ps_filter), include.root = TRUE)
+
+#get the sample_data objet
+sd <- sample_data(ps_filter)
+
+
+# Add Shannon and Faith PD as new columns
+sd$Shannon <- shannon_vals$Shannon
+sd$Faith_PD <- faith_pd$PD
+
+# Put the updated sample_data back into the phyloseq object
+sample_data(ps_filter) <- sd
+
+# Verify
+head(sample_data(ps_filter))
+
+colnames(meta_df)
+
+#plot
+#Convert phyloseq metadata to a data frame
+meta_df <- data.frame(sample_data(ps_filter), 
+                      SampleID = rownames(sample_data(ps_filter)),
+                      check.names = FALSE)
+
+
+#Subset only the relevant time points
+meta_sub <- meta_df %>%
+  filter(period %in% c("Base", "VEG"))
+
+
+# CTRL_AB group
+ctrl_data <- meta_sub %>% filter(Group_new == "CTRL_AB")
+wilcox_ctrl <- wilcox.test(Shannon ~ period, data = ctrl_data)
+wilcox_ctrl
+
+# Constipation group
+const_data <- meta_sub %>% filter(Group_new == "Constipation")
+wilcox_const <- wilcox.test(Shannon ~ period, data = const_data)
+wilcox_const
+
+
+#plot
+Shannon_plot <- ggplot(meta_sub, aes(x = period, y = Shannon, color = Group_new)) +
+geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 2) +
+  theme_minimal() +
+  labs(title = "Shannon Diversity by Timepoint and Group",
+       x = "period",
+       y = "Shannon Diversity",
+       color = "Group")
+
+
+
+#Fith PD plot
+ctrl_data <- meta_sub %>% filter(Group_new == "CTRL_AB")
+wilcox_ctrl <- wilcox.test(Faith_PD ~ period, data = ctrl_data)
+wilcox_ctrl
+
+# Constipation group
+const_data <- meta_sub %>% filter(Group_new == "Constipation")
+wilcox_const <- wilcox.test(Faith_PD ~ period, data = const_data)
+wilcox_const
+
+
+#plot
+faith_plot<- ggplot(meta_sub, aes(x = period, y = Faith_PD, color = Group_new)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 2) +
+  theme_minimal() +
+  labs(title = "Faith PD by Timepoint and Group",
+       x = "period",
+       y = "Faith PD",
+       color = "Group")
+
+#saving
+ggsave("shannon_diversity.png", plot = Shannon_plot, width = 6, height = 4, dpi = 300)
+ggsave("Faith_PD.png", plot = faith_plot, width = 6, height = 4, dpi = 300)
+
+
+
+
