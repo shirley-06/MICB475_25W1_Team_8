@@ -102,3 +102,42 @@ qiime diversity core-metrics-phylogenetic \
   --p-sampling-depth 35798 \
   --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
   --output-dir core_metrics_results
+
+# Calculate alpha-group-significance
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity faith_pd_vector.qza \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --o-visualization faith-pd-group-significance.qzv
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity evenness_vector.qza \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --o-visualization evenness-group-significance.qzv
+  
+# Calculate beta-group-significance
+qiime diversity beta-group-significance \
+  --i-distance-matrix unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --m-metadata-column period \
+  --o-visualization unweighted-unifrac-period-significance.qzv \
+  --p-pairwise
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file /datasets/project_2/fermentation/fermentation_metadata.tsv \
+  --m-metadata-column Group \
+  --o-visualization unweighted-unifrac-group-significance.qzv \
+  --p-pairwise
+
+#Creating export files
+qiime tools export \
+  --input-path /data/HG_SE_try/rooted_tree_se.qza \
+  --output-path /data/export
+
+qiime tools export \
+  --input-path /data/HG_SE_try/table_se.qza \
+  --output-path /data/export
+
+qiime tools export \
+  --input-path /data/HG_SE_try/taxonomy_se.qza \
+  --output-path /data/export
