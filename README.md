@@ -5,7 +5,7 @@
 #### Agenda
 - issues with trimming data
 - Should we perform feature-based filtering? (Should we keep the "rare" reads?)
-- preliminary data (alpha and beta charts)
+- preliminary data (alpha charts)
 
 
 #### Minutes
