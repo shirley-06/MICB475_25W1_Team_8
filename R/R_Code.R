@@ -86,7 +86,7 @@ ps_taxa_filter <- subset_taxa(
 
 #subset to only female samples and remove NA samples in Group samples
 ps_filter <- subset_samples (ps_taxa_filter, 
-                             host_sex == "female" ) &
+                             host_sex == "female" &
                             Group != "not applicable")
 
 #Create a new column to group 'Control' and 'Antibiotics' group as one group
@@ -96,11 +96,20 @@ sample_data(ps_filter)$Group_new <- ifelse(
   sample_data(ps_filter)$Group
 )
 
+#look at groups
 table(sample_data(ps_filter)$Group_new)
 
 ###viewing OTU table after filtering
 otu_df <- as.data.frame(otu_table(ps_filter))
 head(otu_df) 
+
+#rarefy
+mat <- as(t(otu_table(ps_filter)), "matrix")
+class(mat)
+raremax <- min(rowSums(mat))
+
+system.time(rarecurve(mat, step = 100, sample = raremax, col = "blue", label = FALSE))
+
 
 # Rarefy samples
 # set rngseed the same number each time to reproduce this exact analysis
