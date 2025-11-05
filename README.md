@@ -1,6 +1,13 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
 
+### November 4, 2025
+#### Agenda
+- issues with trimming data
+- preliminary data (alpha and beta charts)
+
+#### Minutes
+
 ### October 29, 2025
 #### Agenda
 - Review proposal (Aim 2, Timeline)
