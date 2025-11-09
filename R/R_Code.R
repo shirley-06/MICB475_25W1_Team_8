@@ -122,7 +122,10 @@ system.time(rarecurve(mat, step = 100, sample = raremax, col = "blue", label = F
 #rarefaction curve using final filtered table
 rarecurve(t(as.data.frame(otu_table(ps_filter))), cex=0.1)
 ferm_rare <- rarefy_even_depth(ps_filter, rngseed = 1, sample.size = 35798)
+#^^could not run the set of code from above 
 
+otu_df_post <- as.data.frame(otu_table(ps_filter))
+head(otu_df) 
 
 
 ##### Saving #####
