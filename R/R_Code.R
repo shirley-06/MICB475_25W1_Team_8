@@ -16,6 +16,9 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library (ggpubr)
+library(DESeq2)
+library(ggrepel)
+
 
 #### Load data ####
 # Change file paths as necessary, below we are importing them as tibble
@@ -232,12 +235,12 @@ if (taxa_are_rows(ferm_rarefac)) {
 alpha_faith_pd <- pd(otu_mat, phy_tree(ferm_rarefac), include.root = TRUE)
 
 
-# Add Shannon and Faith PD metrics to metadata as new columns
+#add Shannon and Faith PD metrics to metadata as new columns
 sd <- as.data.frame(sample_data(ferm_rarefac))
 sd$Shannon <- alpha_shannon$Shannon[match(rownames(sd), rownames(alpha_shannon))]
 sd$Faith_PD <- alpha_faith_pd$PD[match(rownames(sd), rownames(alpha_faith_pd))]
 
-# Put the updated sample_data back into the phyloseq object
+#convert sample_data back into the phyloseq object
 sample_data(ferm_rarefac) <- sample_data(sd)
 
 # Verify
@@ -376,35 +379,34 @@ ggsave("Ferm_Veg_FaithPD.png", plot = Ferm_FaithPD, width = 6, height = 4, dpi =
 
 
 #### Beta Diversity ####
-# Subset phyloseq object to periods VEG and FERM
-ps_veg_ferm <- subset_samples(ferm_rarefac, period %in% c("VEG", "FERM"))
+#Subset to VEG and FERM periods
+ps_beta <- subset_samples(ferm_rarefac, period %in% c("VEG", "FERM"))
+ps_beta <- prune_taxa(taxa_sums(ps_beta) > 0, ps_beta)  # remove zero-count OTUs
 
-# Remove OTUs with zero counts after subsetting
-ps_veg_ferm <- prune_taxa(taxa_sums(ps_veg_ferm) > 0, ps_veg_ferm)
+#Prepare metadata
+meta_df <- data.frame(sample_data(ps_beta), check.names = TRUE, stringsAsFactors = FALSE)
 
-#Bray-Curtis
-# Extract OTU table and make sure taxa are in columns
-otu_mat <- as(otu_table(ps_veg_ferm), "matrix")
-if(taxa_are_rows(ps_veg_ferm)) {
-  otu_mat <- t(otu_mat)
-}
-# Bray-Curtis distance
-bray_dist <- vegdist(otu_mat, method = "bray")
-
-#covert sample data to data frame for PERMAOVA
-meta_df <- data.frame(sample_data(ps_veg_ferm), check.names = TRUE, stringsAsFactors = FALSE)
-class(meta_df)
-#Make period a factor for PERMAOVA
+# Make period a factor
 meta_df$period <- factor(meta_df$period, levels = c("VEG", "FERM"))
 
-# PERMANOVA
+# Rename groups and make period a facotr for plotting
+meta_df$Group_new <- ifelse(meta_df$Group_new == "CTRL_AB", "Healthy", meta_df$Group_new)
+meta_df$Group_new <- factor(meta_df$Group_new, levels = c("Healthy", "Constipation"))
+
+
+#Bray-Curtis Distance
+#extract OTU table as matrix and ensure taxa are in columns
+otu_mat <- as(otu_table(ps_beta), "matrix")
+#calculate bray curtis distance
+if(taxa_are_rows(ps_beta)) otu_mat <- t(otu_mat)
+bray_dist <- vegdist(otu_mat, method = "bray")
+
+#PERMANOVA
 adonis_bc <- adonis2(bray_dist ~ period, data = meta_df)
-adonis_bc
+print(adonis_bc)
 
-# Perform PCoA (classical multidimensional scaling)
-pcoa_bc <- cmdscale(bray_dist, eig = TRUE, k = 2)  # 2 dimensions
-
-# Create a data frame for plotting
+#perform PCoA and create a data frame for plotting
+pcoa_bc <- cmdscale(bray_dist, eig = TRUE, k = 2)
 pcoa_df <- data.frame(
   Sample = rownames(meta_df),
   Axis1 = pcoa_bc$points[,1],
@@ -413,91 +415,157 @@ pcoa_df <- data.frame(
   Group_new = meta_df$Group_new
 )
 
-# Make period a factor for consistent colors
-pcoa_df$period <- factor(pcoa_df$period, levels = c("VEG", "FERM"))
-
-# Rename groups so CTRL_AB -> Healthy
-pcoa_df$Group_new <- ifelse(pcoa_df$Group_new == "CTRL_AB", "Healthy", pcoa_df$Group_new)
-
-# Make Group_new a factor to control facet order: Healthy left, Constipation right
-pcoa_df$Group_new <- factor(pcoa_df$Group_new, levels = c("Healthy", "Constipation"))
-
-
-# Plot PCoA
+#Plot PCoA
 bray_PCoA <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
   stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
   scale_color_manual(values = c("VEG" = "#16A7A1", "FERM" = "#A09BC2")) +
   theme_minimal() +
-  labs(
-    title = "PCoA of Bray-Curtis Distances (VEG vs FERM)",
-    x = "PCoA 1",
-    y = "PCoA 2",
-    color = "Period",
-    shape = "Group"
-  )
+  labs(title = "PCoA of Bray-Curtis Distances (VEG vs FERM)",
+       x = "PCoA 1",
+       y = "PCoA 2",
+       color = "Period",
+       shape = "Group")
 
-# Faceted PCoA plot
-bray_PCoA_facet <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period)) +
+#Faceted PCoA by group
+bray_PCoA_facet <- bray_PCoA + facet_wrap(~Group_new) +
+  theme(strip.text = element_text(face = "bold"))
+
+#Save plots
+ggsave("FreshvsFerm_Bray_PCoA.png", bray_PCoA, width = 6, height = 4, dpi = 300)
+ggsave("FreshvsFerm_Bray_PCoA_facet.png", bray_PCoA_facet, width = 6, height = 4, dpi = 300)
+
+
+#Weighted UniFrac Distance
+wunifrac_dist <- phyloseq::distance(ps_beta, method = "wunifrac")
+
+#PERMANOVA
+adonis_wu <- adonis2(wunifrac_dist ~ period, data = meta_df)
+print(adonis_wu)
+
+#perform PCoA and create a data frame for plotting
+pcoa_wu <- cmdscale(as.matrix(wunifrac_dist), eig = TRUE, k = 2)
+pcoa_df_wu <- data.frame(
+  Sample = rownames(meta_df),
+  Axis1 = pcoa_wu$points[,1],
+  Axis2 = pcoa_wu$points[,2],
+  period = meta_df$period,
+  Group_new = meta_df$Group_new
+)
+
+# Plot Weighted UniFrac PCoA
+WUniFrac_PCoA <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
   stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
   scale_color_manual(values = c("VEG" = "#16A7A1", "FERM" = "#A09BC2")) +
-  facet_wrap(~Group_new) +
   theme_minimal() +
-  labs(
-    title = "PCoA of Bray-Curtis Distances by Group",
-    x = "PCoA 1",
-    y = "PCoA 2",
-    color = "Period"
-  ) +
+  labs(title = "PCoA of Weighted UniFrac Distances (VEG vs FERM)",
+       x = "PCoA 1",
+       y = "PCoA 2",
+       color = "Period",
+       shape = "Group")
+
+# Faceted PCoA by group
+WUniFrac_PCoA_facet <- WUniFrac_PCoA + facet_wrap(~Group_new) +
   theme(strip.text = element_text(face = "bold"))
 
-
-ggsave("FreshvsFerm_Bray_PCoA.png", plot = bray_PCoA, width = 6, height = 4, dpi = 300)
-ggsave("FreshvsFerm_Bray_PCoA_facet.png", plot = bray_PCoA_facet, width = 6, height = 4, dpi = 300)
-
-
-#Weighted UniFrac distance
-# ---------------------------
-# Subset phyloseq object to periods VEG and FERM
-# ---------------------------
-ps_wunifrac <- subset_samples(ferm_rarefac, period %in% c("VEG", "FERM"))
-
-# Remove OTUs with zero counts
-ps_wunifrac <- prune_taxa(taxa_sums(ps_wunifrac) > 0, ps_wunifrac)
-
-# ---------------------------
-# Weighted UniFrac distance
-# ---------------------------
-wunifrac_dist <- phyloseq::distance(ps_wunifrac, method = "wunifrac")
-
-# ---------------------------
-# PERMANOVA
-# ---------------------------
-meta_df <- data.frame(sample_data(ps_wunifrac), check.names = TRUE, stringsAsFactors = FALSE)
-meta_df$period <- factor(meta_df$period, levels = c("VEG", "FERM"))
-
-adonis_wu <- adonis2(wunifrac_dist ~ period, data = meta_df)
-adonis_wu
+# Save plots
+ggsave("FreshvsFerm_WUniFrac_PCoA.png", WUniFrac_PCoA, width = 6, height = 4, dpi = 300)
+ggsave("FreshvsFerm_WUniFrac_PCoA_facet.png", WUniFrac_PCoA_facet, width = 6, height = 4, dpi = 300)
 
 
+#### DESeq2 ####
+#add 1 to OTU counts to handle zeros
+ps_plus1 <- transform_sample_counts(ferm_rarefac, function(x) x + 1)
+
+#subset phyloseq object for Base vs VEG
+ps_veg <- subset_samples(ps_plus1, period %in% c("Base", "VEG"))
+#convert to DESeq2 object and run DESeq
+dds_VEG <- phyloseq_to_deseq2(ps_veg, ~ period)
+dds_VEG <- DESeq(dds_VEG)
+#extract results
+res_VEG <- results(dds_VEG, contrast = c("period", "VEG", "Base"), tidy = TRUE)
 
 
+#subset phyloseq object for WO1 vs FERM
+ps_ferm <- subset_samples(ps_plus1, period %in% c("WO1", "FERM"))
+#convert to DESeq2 object and run DESeq
+dds_FERM <- phyloseq_to_deseq2(ps_ferm, ~ period)
+dds_FERM <- DESeq(dds_FERM)
+#extract results
+res_FERM <- results(dds_FERM, contrast = c("period", "FERM", "WO1"), tidy = TRUE)
+
+#subset phyloseq object for VEG vs FERM
+ps_deseq <- subset_samples(ps_plus1, period %in% c("VEG", "FERM"))
+#convert to DESeq2 object and run DESeq
+dds_VEG_FERM <- phyloseq_to_deseq2(ps_deseq, ~ period)
+dds_VEG_FERM <- DESeq(dds_VEG_FERM)
+#extract results
+res_VEG_FERM <- results(dds_VEG_FERM, contrast = c("period", "FERM", "VEG"), tidy = TRUE)
 
 
-# extract and convert the sample data from phyloseq to a true data.frame
-sd_df <- data.frame(sample_data(ferm_rarefac), check.names = TRUE, stringsAsFactors = FALSE)
-# Check class
-class(sd_df)
+#function to create volcano plot from DESeq2 results
+plot_volcano <- function(res_df, title = "Volcano Plot") {
+  
+  #add a significance column
+  res_df <- res_df %>%
+    mutate(Significant = case_when(
+      padj < 0.05 & log2FoldChange > 0 ~ "Up",
+      padj < 0.05 & log2FoldChange < 0 ~ "Down",
+      TRUE ~ "NS"
+    ))
+  
+  #create volcano plot
+  p <- ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = Significant)) +
+    geom_point(alpha = 0.7, size = 2) +
+    scale_color_manual(values = c("Up" = "#E69F00", "Down" = "#56B4E9", "NS" = "grey70")) +
+    theme_minimal() +
+    labs(title = title,
+         x = "Log2 Fold Change",
+         y = "-log10 Adjusted P-value",
+         color = "Significance") +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "red") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "black")
+  
+  return(p)
+}
 
-#Beta Diversity 
-# Filter only the groups and periods you care about
-sd_plot_veg <- sd_df %>%
-  filter(Group_new %in% c("Constipation", "CTRL_AB") &
-           period %in% c("Base", "VEG")) %>%
-  select(Subject = participant_id, Group_new, period, Shannon, Faith_PD)
+#volcano plots
+volcano_VEG <- plot_volcano(res_VEG, title = "DESeq2: Base vs VEG")
+volcano_FERM <- plot_volcano(res_FERM, title = "DESeq2: WO1 vs FERM")
+volcano_VEG_FERM <- plot_volcano(res_VEG_FERM, title = "DESeq2: VEG vs FERM")
+
+#preview plots
+volcano_VEG
+volcano_FERM
+volcano_VEG_FERM
+
+#save plots
+ggsave("Volcano_Base_vs_VEG.png", plot = volcano_VEG, width = 6, height = 4, dpi = 300)
+ggsave("Volcano_WO1_vs_FERM.png", plot = volcano_FERM, width = 6, height = 4, dpi = 300)
+ggsave("Volcano_VEG_vs_FERM.png", plot = volcano_VEG_FERM, width = 6, height = 4, dpi = 300)
 
 
+#function to get significant taxa with enrichment direction
+get_sig_table <- function(deseq_res, group1, group2, alpha = 0.05) {
+  deseq_res %>%
+    filter(!is.na(padj)) %>%               # remove NA padj
+    filter(padj < alpha) %>%               # significance threshold
+    mutate(
+      Comparison = paste(group1, "vs", group2),
+      Enriched_in = ifelse(log2FoldChange > 0, group1, group2)
+    ) %>%
+    select(Taxon = row, Comparison, log2FoldChange, padj, Enriched_in)
+}
 
+#apply to each comparison
+sig_VEG <- get_sig_table(res_VEG, "VEG", "Base")
+sig_FERM <- get_sig_table(res_FERM, "FERM", "WO1")
+sig_VEG_FERM <- get_sig_table(res_VEG_FERM, "FERM", "VEG")
 
+#combine all into one table and preview
+sig_all <- bind_rows(sig_VEG, sig_FERM, sig_VEG_FERM)
+head(sig_all)
 
+#save DESeq2 significant taxa as CSV
+write.csv(sig_all, "DESeq2_significant_taxa_all_comparisons.csv", row.names = FALSE)
