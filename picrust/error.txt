@@ -1,0 +1,37 @@
+Error running this command:
+place_seqs.py --study_fasta picrust/dna-sequences.fasta --ref_dir /opt/conda/envs/picrust2/lib/python3.9/site-packages/picrust2/default_files/bacteria/bac_ref --out_tree picrust_out/bac.tre --processes 1 --intermediate picrust_out/intermediate/place_seqs_bac --min_align 0.8 --chunk_size 5000 --placement_tool epa-ng
+
+Standard error of the above failed command:
+Warning - 4 input sequences aligned poorly to reference sequences (--min_align option specified a minimum proportion of 0.8 aligning to reference sequences). These input sequences will not be placed and will be excluded from downstream steps.
+
+This is the set of poorly aligned input sequences to be excluded: ad7accfadd35036ad9e72b13e0880723, 0e1c8a9c9ca441e8e39dddfba9312cb6, 4307538998774e65f835885b43cca0c3, db19bfa30775f756a7ab481cc0158943
+
+
+Error running this command:
+epa-ng --tree /opt/conda/envs/picrust2/lib/python3.9/site-packages/picrust2/default_files/bacteria/bac_ref/bac_ref.tre --ref-msa picrust_out/intermediate/place_seqs_bac/ref_seqs_hmmalign.fasta --query picrust_out/intermediate/place_seqs_bac/study_seqs_hmmalign.fasta --chunk-size 5000 -T 1 -m /opt/conda/envs/picrust2/lib/python3.9/site-packages/picrust2/default_files/bacteria/bac_ref/bac_ref.model -w picrust_out/intermediate/place_seqs_bac/epa_out --filter-acc-lwr 0.99 --filter-max 100
+
+Standard output of the above failed command:
+INFO Selected: Output dir: picrust_out/intermediate/place_seqs_bac/epa_out/
+INFO Selected: Query file: picrust_out/intermediate/place_seqs_bac/study_seqs_hmmalign.fasta
+INFO Selected: Tree file: /opt/conda/envs/picrust2/lib/python3.9/site-packages/picrust2/default_files/bacteria/bac_ref/bac_ref.tre
+INFO Selected: Reference MSA: picrust_out/intermediate/place_seqs_bac/ref_seqs_hmmalign.fasta
+INFO Selected: Filtering by accumulated threshold: 0.99
+INFO Selected: Maximum number of placements per query: 100
+INFO Selected: Automatic switching of use of per rate scalers
+INFO Selected: Preserving the root of the input tree
+INFO Selected: Specified model file: /opt/conda/envs/picrust2/lib/python3.9/site-packages/picrust2/default_files/bacteria/bac_ref/bac_ref.model
+INFO Selected: Reading queries in chunks of: 5000
+INFO Selected: Using threads: 1
+INFO     ______ ____   ___           _   __ ______
+        / ____// __ \ /   |         / | / // ____/
+       / __/  / /_/ // /| | ______ /  |/ // / __  
+      / /___ / ____// ___ |/_____// /|  // /_/ /  
+     /_____//_/    /_/  |_|      /_/ |_/ \____/ (v0.3.8)
+INFO Using model parameters:
+INFO    Rate heterogeneity: GAMMA (4 cats, mean),  alpha: 0.408013 (user),  weights&rates: (0.25,0.0178872) (0.25,0.187716) (0.25,0.739808) (0.25,3.05459) 
+        Base frequencies (user): 0.209289 0.232667 0.311531 0.246513 
+        Substitution rates (user): 1.04872 2.92815 1.63887 0.831209 3.68952 1
+INFO Output file: picrust_out/intermediate/place_seqs_bac/epa_out/epa_result.jplace
+
+
+(picrust2) root@stu-2290:/data/HG_SE_try# 

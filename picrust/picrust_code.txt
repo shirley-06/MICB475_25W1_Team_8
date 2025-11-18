@@ -1,0 +1,19 @@
+qiime feature-table filter-features \
+  --i-table female_filtered_table_se.qza \
+  --p-min-frequency 5 \
+  --o-filtered-table feature_frequency_filtered_table.qza
+
+
+qiime tools export \
+  --input-path /data/HG_SE_try/feature_frequency_filtered_table.qza \
+  --output-path /data/HG_SE_try/picrust
+
+qiime tools export \
+--input-path /data/HG_SE_try/rep_seqs_se.qza \
+--output-path /data/HG_SE_try/picrust
+
+picrust2_pipeline.py \
+-s picrust/dna-sequences.fasta \
+-i picrust/feature-table.biom \
+--placement_tool sepp \
+-o picrust_out
