@@ -1,5 +1,20 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
+### November 19, 2025
+#### Minutes
+- Went over plots
+- Resolved issue with PiCrust2
+- Resolved issue with Rstudio/R
+
+####Action Items:
+- Beta Diversity Bray Curtis: make sure look like separate plots
+- DEseq2 analysis: plot 2 should have more significant changes in fermented
+- PiCrust2: Send Avril location of files and exact code needed to run
+- Longitudinal analysis issue: try not updating
+- Have ASV, just need to match to taxnomy table (+/- 0.5 disregard)
+- Can merge table to taxnomy (sort +/-5, look at significant ones)
+          - Can help with discussion in manuscript
+
 
 ### November 18, 2025
 #### Agenda
