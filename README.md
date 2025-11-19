@@ -4,23 +4,22 @@
 ### November 18, 2025
 #### Agenda
 
-- reviewing plots
-- troubleshooting issue with picrust in server
+- Reviewing figures
+- Troubleshooting issue with picrust in server
 
 ### November 4, 2025
 #### Agenda
-- issues with trimming data
+- Issues with trimming data
 - Should we perform feature-based filtering? (Should we keep the "rare" reads?)
 - preliminary data (alpha charts)
 
-
 #### Minutes
-Dataset doesn’t need to be redenoised - move forward with the data processed by Hans
-We should be filtering out rare ASVs in R
+- Dataset doesn’t need to be redenoised - move forward with the data processed by Hans
+- We should be filtering out rare ASVs in R
 
 #### Action items
-Project timeline - start Aim 3 in parallel with Aim 1
-By next meeting, try to come with progress for each aim
+- Project timeline - start Aim 3 in parallel with Aim 1
+- By next meeting, try to come with progress for each aim
 
 
 ### October 29, 2025
