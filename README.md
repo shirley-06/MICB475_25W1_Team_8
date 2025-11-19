@@ -1,6 +1,12 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
 
+### November 18, 2025
+#### Agenda
+
+- reviewing plots
+- troubleshooting issue with picrust in server
+
 ### November 4, 2025
 #### Agenda
 - issues with trimming data
@@ -9,6 +15,13 @@
 
 
 #### Minutes
+Dataset doesn’t need to be redenoised - move forward with the data processed by Hans
+We should be filtering out rare ASVs in R
+
+#### Action items
+Project timeline - start Aim 3 in parallel with Aim 1
+By next meeting, try to come with progress for each aim
+
 
 ### October 29, 2025
 #### Agenda
