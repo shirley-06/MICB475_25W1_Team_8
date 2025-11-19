@@ -4,8 +4,11 @@
 ### November 18, 2025
 #### Agenda
 
-- Reviewing figures
+- Review Aim 1 figures
 - Troubleshooting issue with picrust in server
+- Troubleshooting issues with lme4/lmerTest for longitudinal analysis
+        - getting an error about the 'Matrix' package, attempted to trouble shoot but not successful 
+
 
 ### November 4, 2025
 #### Agenda
