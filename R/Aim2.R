@@ -1,3 +1,7 @@
+#install lme4 packages (for Shirley's older R version)
+install.packages("lme4", type = "source")
+install.packages("lmerTest")
+
 #load library
 library(phyloseq)
 library(tidyverse)
@@ -115,16 +119,144 @@ sum(is.na(meta_microb$period))
 sum(is.na(meta_microb$participant_id))
 
 #### Linear Mixed Model ####
-model_shannon <- lmer(Shannon ~ period + (1 | participant_id), data = meta_fresh)
+
+##Fresh Shannon
+model_shannon_fresh <- lmer(Shannon ~ period + (1 | participant_id), data = meta_fresh)
 
 #ANOVA for fixed effects
-anova(model_shannon)
+anova(model_shannon_fresh)
 
 #post-hoc tests (period comparisons)
-emmeans(model_shannon, pairwise ~ period)
+emmeans(model_shannon_fresh, pairwise ~ period)
 
-#TEST
+emm_fresh_shannon <- emmeans(model_shannon_fresh, ~ period)
+emm_df_fresh <- as.data.frame(emm_fresh_shannon)
+ggplot(emm_df_fresh, aes(x=period, y=emmean)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  theme_minimal()
+
+##Fresh Faith
+model_faith_fresh <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_fresh)
+
+# ANOVA
+anova(model_faith_fresh)
+
+# Post-hoc contrasts
+emmeans(model_faith_fresh, pairwise ~ period)
+
+# Plot
+emm_fresh_faith <- emmeans(model_faith_fresh, ~ period)
+emm_df_faith_fresh <- as.data.frame(emm_fresh_faith)
+ggplot(emm_df_faith_fresh, aes(x=period, y=emmean)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  ylab("Faith's PD") +
+  xlab("Period") +
+  theme_minimal()
 
 
+##Ferm Shannon
+model_shannon_ferm <- lmer(Shannon ~ period + (1 | participant_id), data = meta_ferm)
+anova(model_shannon_ferm)
+emmeans(model_shannon_ferm, pairwise ~ period)
+
+# Plot
+emm_shannon_ferm <- emmeans(model_shannon_ferm, ~ period)
+emm_df_shannon_ferm <- as.data.frame(emm_shannon_ferm)
+ggplot(emm_df_shannon_ferm, aes(x=period, y=emmean)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  theme_minimal()
+
+##Ferm Faith
+model_faith_ferm <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_ferm)
+anova(model_faith_ferm)
+emmeans(model_faith_ferm, pairwise ~ period)
+
+emm_faith_ferm <- emmeans(model_faith_ferm, ~ period)
+emm_df_faith_ferm <- as.data.frame(emm_faith_ferm)
+ggplot(emm_df_faith_ferm, aes(x=period, y=emmean)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  ylab("Faith's PD") +
+  xlab("Period") +
+  theme_minimal()
 
 
+##Microbiome Shannon
+model_shannon_microb <- lmer(Shannon ~ period + (1 | participant_id), data = meta_microb)
+anova(model_shannon_microb)
+emmeans(model_shannon_microb, pairwise ~ period)
+
+emm_shannon_microb <- emmeans(model_shannon_microb, ~ period)
+emm_df_shannon_microb <- as.data.frame(emm_shannon_microb)
+ggplot(emm_df_shannon_microb, aes(x=period, y=emmean)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  theme_minimal()
+
+##Microbiome Faith
+model_faith_microb <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_microb)
+anova(model_faith_microb)
+emmeans(model_faith_microb, pairwise ~ period)
+
+emm_faith_microb <- emmeans(model_faith_microb, ~ period)
+emm_df_faith_microb <- as.data.frame(emm_faith_microb)
+ggplot(emm_df_faith_microb, aes(x=period, y=emmean)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  ylab("Faith's PD") +
+  xlab("Period") +
+  theme_minimal()
+
+###Combine Graph
+#add the subset info and combine
+
+#fresh
+emm_df_fresh$metric <- "Shannon"
+emm_df_fresh$subset <- "Fresh"
+
+emm_df_faith_fresh$metric <- "Faith_PD"
+emm_df_faith_fresh$subset <- "Fresh"
+
+#ferm
+emm_df_shannon_ferm$metric <- "Shannon"
+emm_df_shannon_ferm$subset <- "Fermented"
+
+emm_df_faith_ferm$metric <- "Faith_PD"
+emm_df_faith_ferm$subset <- "Fermented"
+
+#microbiome washouts
+emm_df_shannon_microb$metric <- "Shannon"
+emm_df_shannon_microb$subset <- "Microbiome Washout"
+
+emm_df_faith_microb$metric <- "Faith_PD"
+emm_df_faith_microb$subset <- "Microbiome Washout"
+
+#combine all data
+plot_data <- bind_rows(
+  emm_df_fresh, emm_df_faith_fresh,
+  emm_df_shannon_ferm, emm_df_faith_ferm,
+  emm_df_shannon_microb, emm_df_faith_microb
+)
+
+#plot all
+ggplot(plot_data, aes(x=period, y=emmean, color=period)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+  facet_grid(metric ~ subset, scales = "free_y") +
+  ylab("Alpha Diversity") +
+  xlab("Period") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill=NA, size=1), # add border
+    strip.background = element_rect(fill="grey90", color="black", size=0.5) # optional: facet label background
+  )
