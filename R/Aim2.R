@@ -16,6 +16,9 @@ library(pheatmap)
 library(ape)
 library(picante)
 library(ggsignif)
+library(ggpubr)
+library(dplyr)
+library(patchwork)
 
 
 #load filtered and rarefied data
@@ -457,3 +460,73 @@ head(dist_bc_fresh)
 str(dist_bc_fresh)
 table(dist_bc_fresh$period)
 table(dist_bc_fresh$participant_id)
+
+#Plots for beta diversity 
+# Function to create combined line + boxplot figure
+plot_distance_lmm <- function(dist_df, lmm_res, title_prefix) {
+  
+  # Extract post-hoc contrasts for significance
+  contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
+    mutate(
+      group1 = gsub(" -.*","",contrast),
+      group2 = gsub(".*- ","",contrast),
+      sig = case_when(
+        p.value < 0.001 ~ "***",
+        p.value < 0.01  ~ "**",
+        p.value < 0.05  ~ "*",
+        TRUE ~ "ns"
+      )
+    ) %>%
+    # staggered y positions to avoid overlap
+    mutate(
+      y.position = max(dist_df$distance) + seq(0.05, 0.05*nrow(.), by = 0.05)*max(dist_df$distance)
+    ) %>%
+    dplyr::select(group1, group2, sig, y.position)
+  
+  # Line/trajectory plot
+  line_plot <- ggplot(dist_df, aes(x = period, y = distance, group = participant_id)) +
+    geom_line(alpha = 0.3, color = "grey") +
+    stat_summary(aes(group=1), fun = mean, geom = "line", color = "blue", size = 1.2) +
+    stat_summary(aes(group=1), fun.data = mean_se, geom = "ribbon", fill = "blue", alpha = 0.2) +
+    labs(title = paste0(title_prefix, " - Trajectories"), x = "Period", y = "Distance to Baseline") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  
+  #boxplot/violin with significance
+  box_plot <- ggplot(dist_df, aes(x = period, y = distance, fill = period)) +
+    geom_violin(alpha = 0.5) +
+    geom_boxplot(width = 0.2, outlier.shape = NA) +
+    stat_summary(fun = mean, geom = "point", shape = 21, size = 3, color = "black", fill = "yellow") +
+    ggpubr::stat_pvalue_manual(contrasts_df, label = "sig", tip.length = 0.01) +
+    labs(title = paste0(title_prefix, " - Summary"), x = "Period", y = "Distance to Baseline") +
+    theme_minimal() +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  
+  #combine side by side
+  combined_plot <- line_plot | box_plot
+  return(combined_plot)
+}
+
+#generate plots for all datasets
+#fresh
+beta_fresh_BC <- plot_distance_lmm(dist_bc_fresh, lmm_bc_fresh, "Fresh Bray-Curtis")
+ggsave("D2B_Fresh_Bray-Curtis.png", plot = beta_fresh_BC, width = 6, height = 4, dpi = 300)
+
+beta_fresh_WUF <- plot_distance_lmm(dist_wu_fresh, lmm_wu_fresh, "Fresh Weighted UniFrac")
+ggsave("D2B_Fresh_WeightedUF.png", plot = beta_fresh_WUF, width = 6, height = 4, dpi = 300)
+
+#fermented
+beta_ferm_BC <- plot_distance_lmm(dist_bc_ferm, lmm_bc_ferm, "Fermented Bray-Curtis")
+ggsave("D2B_Ferm_Bray-Curtis.png", plot = beta_ferm_BC, width = 6, height = 4, dpi = 300)
+
+beta_ferm_WUF <- plot_distance_lmm(dist_wu_ferm, lmm_wu_ferm, "Fermented Weighted UniFrac")
+ggsave("D2B_Ferm_WeightedUF.png", plot = beta_ferm_WUF, width = 6, height = 4, dpi = 300)
+
+
+#microbiome washout
+beta_microbiome_BC <- plot_distance_lmm(dist_bc_microb, lmm_bc_microb, "Washout Bray-Curtis")
+ggsave("D2B_microbiome_Bray-Curtis.png", plot = beta_microbiome_BC, width = 6, height = 4, dpi = 300)
+
+beta_microbiome_WUF <- plot_distance_lmm(dist_wu_microb, lmm_wu_microb, "Washout Weighted UniFrac")
+ggsave("D2B_microbiome_WeightedUF.png", plot = beta_microbiome_WUF, width = 6, height = 4, dpi = 300)
