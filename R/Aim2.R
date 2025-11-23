@@ -15,6 +15,7 @@ library(emmeans)
 library(pheatmap)
 library(ape)
 library(picante)
+library(ggsignif)
 
 
 #load filtered and rarefied data
@@ -25,7 +26,6 @@ load("ferm_rare.RData")
 ls()
 ferm_rarefac
 sample_data(ferm_rarefac) %>% head()
-
 
 
 
@@ -118,105 +118,165 @@ sum(is.na(meta_microb$Faith_PD))
 sum(is.na(meta_microb$period))
 sum(is.na(meta_microb$participant_id))
 
-#### Linear Mixed Model ####
+##### Linear Mixed Model (LMM) #####
 
-##Fresh Shannon
+##fresh shannon LMM (period as the fixed effects and participant_id as the random effect)
 model_shannon_fresh <- lmer(Shannon ~ period + (1 | participant_id), data = meta_fresh)
 
-#ANOVA for fixed effects
+#perform ANOVA to test 
 anova(model_shannon_fresh)
 
-#post-hoc tests (period comparisons)
+#post-hoc tests (period comparisons to test which periods differ from each other)
 emmeans(model_shannon_fresh, pairwise ~ period)
 
+#extract the estimated marginal means from each period
 emm_fresh_shannon <- emmeans(model_shannon_fresh, ~ period)
+#convert estimated marginal means output into a data frame for plotting
 emm_df_fresh <- as.data.frame(emm_fresh_shannon)
-ggplot(emm_df_fresh, aes(x=period, y=emmean)) +
+
+#plot the estimated means 
+LMM_fresh_veg_shannon <- ggplot(emm_df_fresh, aes(x=period, y=emmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   ylab("Shannon Diversity") +
   xlab("Period") +
-  theme_minimal()
+  ggtitle("Fresh Intervention – Shannon") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 
-##Fresh Faith
+ggsave("LMM_Fresh_Veg_Shannon.png", plot = LMM_fresh_veg_shannon, width = 6, height = 4, dpi = 300)
+
+
+##Fresh Faith LMM
 model_faith_fresh <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_fresh)
 
-# ANOVA
+#ANOVA
 anova(model_faith_fresh)
 
-# Post-hoc contrasts
+#post-hoc contrasts
 emmeans(model_faith_fresh, pairwise ~ period)
 
-# Plot
+#extract the estimated marginal means from each period
 emm_fresh_faith <- emmeans(model_faith_fresh, ~ period)
+#convert estimated marginal means output into a data frame for plotting
 emm_df_faith_fresh <- as.data.frame(emm_fresh_faith)
-ggplot(emm_df_faith_fresh, aes(x=period, y=emmean)) +
+
+
+#plot
+LMM_fresh_veg_faith <- ggplot(emm_df_faith_fresh, aes(x=period, y=emmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   ylab("Faith's PD") +
   xlab("Period") +
-  theme_minimal()
+  ggtitle("Fresh Intervention – Faith's PD") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#save plot
+ggsave("LMM_Fresh_Veg_Faith.png", plot = LMM_fresh_veg_faith, width = 6, height = 4, dpi = 300)
 
 
-##Ferm Shannon
+
+
+##Ferm Shannon LMM
 model_shannon_ferm <- lmer(Shannon ~ period + (1 | participant_id), data = meta_ferm)
+#ANOVA and post-hoc contrasts
 anova(model_shannon_ferm)
 emmeans(model_shannon_ferm, pairwise ~ period)
 
-# Plot
+#extract the estimated marginal means from each period and convert output into a data frame for plotting
 emm_shannon_ferm <- emmeans(model_shannon_ferm, ~ period)
 emm_df_shannon_ferm <- as.data.frame(emm_shannon_ferm)
-ggplot(emm_df_shannon_ferm, aes(x=period, y=emmean)) +
+
+#plot
+LMM_ferm_veg_shannon <- ggplot(emm_df_shannon_ferm, aes(x=period, y=emmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   ylab("Shannon Diversity") +
   xlab("Period") +
-  theme_minimal()
+  ggtitle("Fermentation Intervention – Shannon") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 
-##Ferm Faith
+#save plot
+ggsave("LMM_Ferm_Veg_Shannon.png", plot = LMM_ferm_veg_shannon, width = 6, height = 4, dpi = 300)
+
+
+
+
+##Ferm Faith LMM
 model_faith_ferm <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_ferm)
+#ANOVA and post-hoc contrasts
 anova(model_faith_ferm)
 emmeans(model_faith_ferm, pairwise ~ period)
 
+#extract the estimated marginal means from each period and convert output into a data frame for plotting
 emm_faith_ferm <- emmeans(model_faith_ferm, ~ period)
 emm_df_faith_ferm <- as.data.frame(emm_faith_ferm)
-ggplot(emm_df_faith_ferm, aes(x=period, y=emmean)) +
+
+#plot
+LMM_ferm_veg_faith <- ggplot(emm_df_faith_ferm, aes(x=period, y=emmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   ylab("Faith's PD") +
   xlab("Period") +
-  theme_minimal()
+  ggtitle("Fermentation Intervention – Faith's PD") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#save plot
+ggsave("LMM_Ferm_Veg_Faith.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
 
 
-##Microbiome Shannon
+##Microbiome Shannon LMM
 model_shannon_microb <- lmer(Shannon ~ period + (1 | participant_id), data = meta_microb)
+#ANOVA and post-hoc contrasts
 anova(model_shannon_microb)
 emmeans(model_shannon_microb, pairwise ~ period)
 
+#extract the estimated marginal means from each period and convert output into a data frame for plotting
 emm_shannon_microb <- emmeans(model_shannon_microb, ~ period)
 emm_df_shannon_microb <- as.data.frame(emm_shannon_microb)
-ggplot(emm_df_shannon_microb, aes(x=period, y=emmean)) +
+#plot
+LMM_microbiome_shannon <- ggplot(emm_df_shannon_microb, aes(x=period, y=emmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   ylab("Shannon Diversity") +
   xlab("Period") +
-  theme_minimal()
+  ggtitle("Microbiome – Shannon") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#save plot
+ggsave("LMM_Microbiome_Shannon.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
+
+
 
 ##Microbiome Faith
 model_faith_microb <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_microb)
+#ANOVA and post-hoc contrasts
 anova(model_faith_microb)
 emmeans(model_faith_microb, pairwise ~ period)
 
+#extract the estimated marginal means from each period and convert output into a data frame for plotting
 emm_faith_microb <- emmeans(model_faith_microb, ~ period)
 emm_df_faith_microb <- as.data.frame(emm_faith_microb)
-ggplot(emm_df_faith_microb, aes(x=period, y=emmean)) +
+
+#plot
+LMM_microbiome_faith <- ggplot(emm_df_faith_microb, aes(x=period, y=emmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   ylab("Faith's PD") +
   xlab("Period") +
-  theme_minimal()
+  ggtitle("Microbiome – Faith's PD") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 
-###Combine Graph
+#save plot
+ggsave("LMM_Microbiome_Faith.png", plot = LMM_microbiome_faith, width = 6, height = 4, dpi = 300)
+
+
+###combine graphs
 #add the subset info and combine
 
 #fresh
@@ -248,7 +308,7 @@ plot_data <- bind_rows(
 )
 
 #plot all
-ggplot(plot_data, aes(x=period, y=emmean, color=period)) +
+combined_plot <- ggplot(plot_data, aes(x=period, y=emmean, color=period)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
   facet_grid(metric ~ subset, scales = "free_y") +
@@ -260,3 +320,140 @@ ggplot(plot_data, aes(x=period, y=emmean, color=period)) +
     panel.border = element_rect(colour = "black", fill=NA, size=1), # add border
     strip.background = element_rect(fill="grey90", color="black", size=0.5) # optional: facet label background
   )
+
+ggsave("LMM_Alpha_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
+
+
+#### Beta Diversity ####
+#prepare metadata
+meta_fresh_df <- as.data.frame(sample_data(ps_fresh))
+meta_fresh_df$SampleID <- rownames(meta_fresh_df)
+
+meta_ferm_df <- as.data.frame(sample_data(ps_ferm))
+meta_ferm_df$SampleID <- rownames(meta_ferm_df)
+
+meta_microb_df <- as.data.frame(sample_data(ps_microb))
+meta_microb_df$SampleID <- rownames(meta_microb_df)
+
+
+#beta diversity matrices calculations (bray and weighted unifrac)
+#fresh
+beta_bc_fresh <- phyloseq::distance(ps_fresh, method = "bray")
+beta_wu_fresh <- phyloseq::distance(ps_fresh, method = "wunifrac")
+
+#fermented
+beta_bc_ferm <- phyloseq::distance(ps_ferm, method = "bray")
+beta_wu_ferm <- phyloseq::distance(ps_ferm, method = "wunifrac")
+
+#microbiome washouts
+beta_bc_microb <- phyloseq::distance(ps_microb, method = "bray")
+beta_wu_microb <- phyloseq::distance(ps_microb, method = "wunifrac")
+
+
+#distance-to-baseline calculation function
+distance_to_baseline <- function(dist_matrix, meta) {
+  # Ensure metadata has SampleID
+  if(!"SampleID" %in% colnames(meta)) meta$SampleID <- rownames(meta)
+  
+  # Convert dist object to matrix if needed
+  if(inherits(dist_matrix, "dist")) dist_matrix <- as.matrix(dist_matrix)
+  
+  # Ensure rownames and colnames match SampleID
+  if(is.null(rownames(dist_matrix))) rownames(dist_matrix) <- colnames(dist_matrix) <- meta$SampleID
+  if(is.null(colnames(dist_matrix))) colnames(dist_matrix) <- rownames(dist_matrix) <- meta$SampleID
+  
+  dtb <- data.frame()
+  
+  for(pid in unique(meta$participant_id)) {
+    samp_ids <- meta$SampleID[meta$participant_id == pid]
+    
+    # Identify baseline sample
+    base_samp <- samp_ids[meta$period[meta$SampleID %in% samp_ids] == "Base"]
+    
+    if(length(base_samp) == 0) next
+    
+    # Compute distance to baseline for each sample
+    for(s in samp_ids) {
+      dtb <- rbind(dtb, data.frame(
+        participant_id = pid,
+        SampleID = s,
+        period = meta$period[meta$SampleID == s],
+        distance = dist_matrix[s, base_samp]
+      ))
+    }
+  }
+  
+  return(dtb)
+}
+
+
+
+# Convert dist object to matrix first
+beta_bc_fresh_mat <- as.matrix(beta_bc_fresh)
+beta_wu_fresh_mat <- as.matrix(beta_wu_fresh)
+
+beta_bc_ferm_mat <- as.matrix(beta_bc_ferm)
+beta_wu_ferm_mat <- as.matrix(beta_wu_ferm)
+
+beta_bc_microb_mat <- as.matrix(beta_bc_microb)
+beta_wu_microb_mat <- as.matrix(beta_wu_microb)
+
+#distance-to-baseline calculations
+#fresh
+dist_bc_fresh <- distance_to_baseline(beta_bc_fresh_mat, meta_fresh_df)
+dist_wu_fresh <- distance_to_baseline(beta_wu_fresh_mat, meta_fresh_df)
+#ferm
+dist_bc_ferm <- distance_to_baseline(beta_bc_ferm_mat, meta_ferm_df)
+dist_wu_ferm <- distance_to_baseline(beta_wu_ferm_mat, meta_ferm_df)
+#microbiome washouts
+dist_bc_microb <- distance_to_baseline(beta_bc_microb_mat, meta_microb_df)
+dist_wu_microb <- distance_to_baseline(beta_wu_microb_mat, meta_microb_df)
+
+
+#Linear Mixed Models (Distance-to-Baseline)
+#function fits LMM (period as fixed effect and participant_id as random effects) and returns ANOVA and post-hoc contract
+run_lmm <- function(dist_df, response_label = "Distance") {
+  # Ensure factors
+  dist_df$participant_id <- factor(dist_df$participant_id)
+  dist_df$period <- factor(dist_df$period, levels = unique(dist_df$period))
+  
+  # Fit linear mixed model
+  lmm_model <- lmer(distance ~ period + (1 | participant_id), data = dist_df)
+  
+  # ANOVA table
+  anova_res <- anova(lmm_model)
+  
+  # Post-hoc pairwise comparisons
+  emmeans_res <- emmeans(lmm_model, pairwise ~ period)
+  
+  # Prepare estimated marginal means for plotting
+  emm_df <- as.data.frame(emmeans(lmm_model, ~ period))
+  emm_df$response <- response_label
+  
+  # Return as a list
+  return(list(
+    model = lmm_model,
+    anova = anova_res,
+    emmeans = emmeans_res,
+    emm_df = emm_df
+  ))
+}
+
+#Fresh Bray-Curtis
+lmm_bc_fresh <- run_lmm(dist_bc_fresh, response_label = "Bray-Curtis")
+lmm_wu_fresh <- run_lmm(dist_wu_fresh, response_label = "Weighted UniFrac")
+
+# Fermented
+lmm_bc_ferm <- run_lmm(dist_bc_ferm, response_label = "Bray-Curtis")
+lmm_wu_ferm <- run_lmm(dist_wu_ferm, response_label = "Weighted UniFrac")
+
+# Microbiome washouts
+lmm_bc_microb <- run_lmm(dist_bc_microb, response_label = "Bray-Curtis")
+lmm_wu_microb <- run_lmm(dist_wu_microb, response_label = "Weighted UniFrac")
+
+
+#quick check
+head(dist_bc_fresh)
+str(dist_bc_fresh)
+table(dist_bc_fresh$period)
+table(dist_bc_fresh$participant_id)
