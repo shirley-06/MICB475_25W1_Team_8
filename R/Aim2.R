@@ -530,3 +530,113 @@ ggsave("D2B_microbiome_Bray-Curtis.png", plot = beta_microbiome_BC, width = 6, h
 
 beta_microbiome_WUF <- plot_distance_lmm(dist_wu_microb, lmm_wu_microb, "Washout Weighted UniFrac")
 ggsave("D2B_microbiome_WeightedUF.png", plot = beta_microbiome_WUF, width = 6, height = 4, dpi = 300)
+
+
+
+#### DESeq ####
+#controls for repeated measures
+design = ~ participant_id + period
+
+#run DESEQ2 for each subset
+#fresh
+dds_fresh <- phyloseq_to_deseq2(ps_fresh, ~ participant_id + period)
+
+#ensure period is a factor with proper reference level
+dds_fresh$period <- relevel(dds_fresh$period, "Base")
+
+# Run DESeq2
+dds_fresh <- DESeq(dds_fresh)
+
+# Contrasts
+res_fresh_VEG_vs_Base <- results(dds_fresh, contrast = c("period", "VEG", "Base"))
+res_fresh_WO1_vs_VEG  <- results(dds_fresh, contrast = c("period", "WO1", "VEG"))
+
+
+#repeat DESEQ analysis for ferm subset
+dds_ferm<- phyloseq_to_deseq2(ps_ferm, ~ participant_id + period)
+dds_ferm$period <- relevel(dds_ferm$period, "Base")
+dds_ferm <- DESeq(dds_ferm)
+res_fresh_FERM_vs_Base <- results(dds_ferm, contrast = c("period", "FERM", "Base"))
+res_fresh_WO2_vs_FERM  <- results(dds_ferm, contrast = c("period", "WO2", "FERM"))
+
+#repeat DESEQ analysis for microbiome subset
+dds_microb<- phyloseq_to_deseq2(ps_microb, ~ participant_id + period)
+dds_microb$period <- relevel(dds_microb$period, "Base")
+dds_microb <- DESeq(dds_microb)
+res_fresh_WO1_vs_Base <- results(dds_microb, contrast = c("period", "WO1", "Base"))
+res_fresh_WO2_vs_WO1  <- results(dds_microb, contrast = c("period", "WO2", "WO1"))
+
+
+#prepare data for each subset for LMM analysis using variance-stabilizing transformation (VST_)
+#fresh
+#run VST on DESeq2 object
+vst_fresh <- varianceStabilizingTransformation(dds_fresh, blind = FALSE)
+#extract transformed count matrix
+vst_df_fresh <- as.data.frame(assay(vst_fresh))
+vst_df_fresh$SampleID <- rownames(vst_df_fresh)
+
+#convert to long format for moodeling and add metadata
+vst_fresh_long <- vst_df_fresh %>%
+  tidyr::pivot_longer(cols = -SampleID, names_to = "taxon", values_to = "vst_abundance") %>%
+  left_join(meta_fresh_df, by = "SampleID")
+
+#repeat for ferm
+vst_ferm <- varianceStabilizingTransformation(dds_ferm, blind = FALSE)
+vst_df_ferm <- as.data.frame(assay(vst_ferm))
+vst_df_ferm$SampleID <- rownames(vst_df_ferm)
+vst_ferm_long <- vst_df_ferm %>%
+  tidyr::pivot_longer(cols = -SampleID, names_to = "taxon", values_to = "vst_abundance") %>%
+  left_join(meta_ferm_df, by = "SampleID")
+
+#repeat for microbiome washouts
+vst_microb <- varianceStabilizingTransformation(dds_microb, blind = FALSE)
+vst_df_microb <- as.data.frame(assay(vst_microb))
+vst_df_microb$SampleID <- rownames(vst_df_microb)
+vst_ferm_long <- vst_df_microb %>%
+  tidyr::pivot_longer(cols = -SampleID, names_to = "taxon", values_to = "vst_abundance") %>%
+  left_join(meta_microb_df, by = "SampleID")
+
+
+#fit LMM per taxon to assess persistance 
+#LMM model
+vst_abundance ~ period + (1 | participant_id)
+
+#fresh
+#prepare VST data and merge with metadata
+vst_fresh_long_clean <- vst_fresh_long %>%
+  filter(!is.na(vst_abundance)) %>%               # remove NA
+  group_by(taxon) %>%
+  filter(
+    n() >= 3,                                    # at least 3 samples per taxon
+    sd(vst_abundance, na.rm = TRUE) > 0          # remove zero-variance taxa
+  ) %>%
+  ungroup()
+
+length(unique(vst_fresh_long_clean$taxon))       # check how many taxa remain
+
+#run LMM for each taxon
+lmm_results_fresh <- vst_fresh_long_clean %>%
+  group_by(taxon) %>%
+  group_modify(~{
+    tryCatch({
+      # Fit linear mixed model
+      m <- lmer(vst_abundance ~ period + (1 | participant_id), data = .x)
+      
+      # Post-hoc pairwise contrasts
+      emm <- emmeans(m, pairwise ~ period)
+      
+      tibble(
+        model = list(m),
+        emm = list(emm),
+        contrasts = list(as.data.frame(emm$contrasts))
+      )
+    }, error = function(e) {
+      # Return NA if model fails
+      tibble(
+        model = NA,
+        emm = NA,
+        contrasts = NA
+      )
+    })
+  })
+
