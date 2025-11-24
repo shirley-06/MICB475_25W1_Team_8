@@ -19,6 +19,9 @@ library(ggsignif)
 library(ggpubr)
 library(dplyr)
 library(patchwork)
+library(tidyr)
+library(tibble)
+
 
 
 #load filtered and rarefied data
@@ -556,87 +559,235 @@ res_fresh_WO1_vs_VEG  <- results(dds_fresh, contrast = c("period", "WO1", "VEG")
 dds_ferm<- phyloseq_to_deseq2(ps_ferm, ~ participant_id + period)
 dds_ferm$period <- relevel(dds_ferm$period, "Base")
 dds_ferm <- DESeq(dds_ferm)
-res_fresh_FERM_vs_Base <- results(dds_ferm, contrast = c("period", "FERM", "Base"))
-res_fresh_WO2_vs_FERM  <- results(dds_ferm, contrast = c("period", "WO2", "FERM"))
+res_ferm_FERM_vs_Base <- results(dds_ferm, contrast = c("period", "FERM", "Base"))
+res_ferm_WO2_vs_FERM  <- results(dds_ferm, contrast = c("period", "WO2", "FERM"))
 
 #repeat DESEQ analysis for microbiome subset
 dds_microb<- phyloseq_to_deseq2(ps_microb, ~ participant_id + period)
 dds_microb$period <- relevel(dds_microb$period, "Base")
 dds_microb <- DESeq(dds_microb)
-res_fresh_WO1_vs_Base <- results(dds_microb, contrast = c("period", "WO1", "Base"))
-res_fresh_WO2_vs_WO1  <- results(dds_microb, contrast = c("period", "WO2", "WO1"))
+res_microb_WO1_vs_Base <- results(dds_microb, contrast = c("period", "WO1", "Base"))
+res_microb_WO2_vs_WO1  <- results(dds_microb, contrast = c("period", "WO2", "WO1"))
 
 
-#prepare data for each subset for LMM analysis using variance-stabilizing transformation (VST_)
-#fresh
-#run VST on DESeq2 object
-vst_fresh <- varianceStabilizingTransformation(dds_fresh, blind = FALSE)
-#extract transformed count matrix
-vst_df_fresh <- as.data.frame(assay(vst_fresh))
-vst_df_fresh$SampleID <- rownames(vst_df_fresh)
+#prepare each subset for LMM analysis using variance-stabilizing transformation (VST)
+vst_fresh  <- varianceStabilizingTransformation(dds_fresh, blind = FALSE)
+vst_df_fresh  <- as.data.frame(assay(vst_fresh))
 
-#convert to long format for moodeling and add metadata
-vst_fresh_long <- vst_df_fresh %>%
-  tidyr::pivot_longer(cols = -SampleID, names_to = "taxon", values_to = "vst_abundance") %>%
-  left_join(meta_fresh_df, by = "SampleID")
+vst_ferm   <- varianceStabilizingTransformation(dds_ferm, blind = FALSE)
+vst_df_ferm   <- as.data.frame(assay(vst_ferm))
 
-#repeat for ferm
-vst_ferm <- varianceStabilizingTransformation(dds_ferm, blind = FALSE)
-vst_df_ferm <- as.data.frame(assay(vst_ferm))
-vst_df_ferm$SampleID <- rownames(vst_df_ferm)
-vst_ferm_long <- vst_df_ferm %>%
-  tidyr::pivot_longer(cols = -SampleID, names_to = "taxon", values_to = "vst_abundance") %>%
-  left_join(meta_ferm_df, by = "SampleID")
-
-#repeat for microbiome washouts
 vst_microb <- varianceStabilizingTransformation(dds_microb, blind = FALSE)
 vst_df_microb <- as.data.frame(assay(vst_microb))
-vst_df_microb$SampleID <- rownames(vst_df_microb)
-vst_ferm_long <- vst_df_microb %>%
-  tidyr::pivot_longer(cols = -SampleID, names_to = "taxon", values_to = "vst_abundance") %>%
+
+#convert to long format for merging with metadata
+vst_fresh_long <- vst_df_fresh %>%
+  rownames_to_column(var = "taxon") %>%
+  pivot_longer(
+    cols = -taxon,
+    names_to = "SampleID",
+    values_to = "vst_abundance"
+  ) %>%
+  left_join(meta_fresh_df, by = "SampleID")
+
+vst_ferm_long <- vst_df_ferm %>%
+  rownames_to_column(var = "taxon") %>%
+  pivot_longer(
+    cols = -taxon,
+    names_to = "SampleID",
+    values_to = "vst_abundance"
+  ) %>%
+  left_join(meta_ferm_df, by = "SampleID")
+
+vst_microb_long <- vst_df_microb %>%
+  rownames_to_column(var = "taxon") %>%
+  pivot_longer(
+    cols = -taxon,
+    names_to = "SampleID",
+    values_to = "vst_abundance"
+  ) %>%
   left_join(meta_microb_df, by = "SampleID")
 
 
-#fit LMM per taxon to assess persistance 
-#LMM model
-vst_abundance ~ period + (1 | participant_id)
+#identify top significant taxa (n=20)
+top_n <- 10
 
 #fresh
-#prepare VST data and merge with metadata
-vst_fresh_long_clean <- vst_fresh_long %>%
-  filter(!is.na(vst_abundance)) %>%               # remove NA
-  group_by(taxon) %>%
-  filter(
-    n() >= 3,                                    # at least 3 samples per taxon
-    sd(vst_abundance, na.rm = TRUE) > 0          # remove zero-variance taxa
-  ) %>%
-  ungroup()
+res_fresh_df <- as.data.frame(res_fresh_VEG_vs_Base) %>%
+  rownames_to_column(var = "taxon") %>%  # move rownames to a column
+  select(taxon, padj) %>%                # keep only the columns we need
+  mutate(padj = as.numeric(padj)) %>%    # ensure padj is numeric
+  filter(!is.na(padj)) %>%               # remove NA padj values
+  arrange(padj)                          # sort by smallest padj
 
-length(unique(vst_fresh_long_clean$taxon))       # check how many taxa remain
+top_taxa_fresh <- res_fresh_df %>%
+  slice_head(n = top_n) %>%              # select top n taxa
+  pull(taxon)
 
-#run LMM for each taxon
-lmm_results_fresh <- vst_fresh_long_clean %>%
-  group_by(taxon) %>%
-  group_modify(~{
-    tryCatch({
-      # Fit linear mixed model
-      m <- lmer(vst_abundance ~ period + (1 | participant_id), data = .x)
-      
-      # Post-hoc pairwise contrasts
-      emm <- emmeans(m, pairwise ~ period)
-      
-      tibble(
-        model = list(m),
-        emm = list(emm),
-        contrasts = list(as.data.frame(emm$contrasts))
-      )
-    }, error = function(e) {
-      # Return NA if model fails
-      tibble(
-        model = NA,
-        emm = NA,
-        contrasts = NA
-      )
+#ferm
+res_ferm_df <- as.data.frame(res_ferm_FERM_vs_Base) %>%
+  rownames_to_column(var = "taxon") %>%
+  select(taxon, padj) %>%
+  mutate(padj = as.numeric(padj)) %>%
+  filter(!is.na(padj)) %>%
+  arrange(padj)
+
+top_taxa_ferm <- res_ferm_df %>%
+  slice_head(n = top_n) %>%
+  pull(taxon)
+
+#microbiome
+res_microb_df <- as.data.frame(res_microb_WO1_vs_Base) %>%
+  rownames_to_column(var = "taxon") %>%
+  select(taxon, padj) %>%
+  mutate(padj = as.numeric(padj)) %>%
+  filter(!is.na(padj)) %>%
+  arrange(padj)
+
+top_taxa_microb <- res_microb_df %>%
+  slice_head(n = top_n) %>%
+  pull(taxon)
+
+
+#filter the VST-long datasets for top taxa
+vst_fresh_long_top <- vst_fresh_long %>%
+  filter(taxon %in% top_taxa_fresh)
+vst_ferm_long_top <- vst_ferm_long %>%
+  filter(taxon %in% top_taxa_ferm)
+vst_microb_long_top <- vst_microb_long %>%
+  filter(taxon %in% top_taxa_microb)
+
+
+#run LMM per taxon
+run_lmm <- function(df) {
+  df %>%
+    group_by(taxon) %>%
+    group_modify(~{
+      tryCatch({
+        m <- lmer(vst_abundance ~ period + (1 | participant_id), data = .x)
+        emm <- emmeans(m, pairwise ~ period)
+        tibble(
+          model = list(m),
+          emm = list(emm),
+          contrasts = list(as.data.frame(emm$contrasts))
+        )
+      }, error = function(e) {
+        tibble(model = NA, emm = NA, contrasts = NA)
+      })
     })
-  })
+}
 
+lmm_results_fresh  <- run_lmm(vst_fresh_long_top)
+lmm_results_ferm   <- run_lmm(vst_ferm_long_top)
+lmm_results_microb <- run_lmm(vst_microb_long_top)
+
+
+
+#check the periods used in LMM
+unique(vst_fresh_long_top$period)
+unique(vst_ferm_long_top$period)
+unique(vst_microb_long_top$period)
+
+
+#check if LMM was sucessful 
+lmm_results_fresh %>%
+  mutate(success = !is.na(model)) %>%
+  summarise(
+    total = n(),
+    succeeded = sum(success),
+    failed = sum(!success)
+  )
+
+lmm_results_ferm %>%
+  mutate(success = !is.na(model)) %>%
+  summarise(
+    total = n(),
+    succeeded = sum(success),
+    failed = sum(!success)
+  )
+
+lmm_results_microb %>%
+  mutate(success = !is.na(model)) %>%
+  summarise(
+    total = n(),
+    succeeded = sum(success),
+    failed = sum(!success)
+  )
+
+
+#DESeq2 plots
+#function to tidy EMMs for plotting
+emm_fresh <- lmm_results_fresh %>%
+  dplyr::filter(!is.na(model)) %>%
+  dplyr::mutate(emm_df = purrr::map(emm, ~ as.data.frame(.x$emmeans))) %>%
+  dplyr::select(taxon, emm_df) %>%
+  tidyr::unnest(cols = c(emm_df))
+
+emm_ferm <- lmm_results_ferm %>%
+  dplyr::filter(!is.na(model)) %>%
+  dplyr::mutate(emm_df = purrr::map(emm, ~ as.data.frame(.x$emmeans))) %>%
+  dplyr::select(taxon, emm_df) %>%
+  tidyr::unnest(cols = c(emm_df))
+
+emm_microb <- lmm_results_microb %>%
+  dplyr::filter(!is.na(model)) %>%
+  dplyr::mutate(emm_df = purrr::map(emm, ~ as.data.frame(.x$emmeans))) %>%
+  dplyr::select(taxon, emm_df) %>%
+  tidyr::unnest(cols = c(emm_df))
+
+#combind plots
+plot_emm_overall <- function(emm_df, title = "LMM Top Taxa") {
+  ggplot(emm_df, aes(x = period, y = emmean, group = taxon, color = taxon)) +
+    geom_point(size = 2) +
+    geom_line() +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    theme_bw() +
+    labs(
+      y = "VST abundance (estimated)",
+      x = "Period",
+      title = title,
+      color = "Taxon"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "right"
+    )
+}
+
+#apply function to all subset and save plot
+deseq_fresh_combined <- plot_emm_overall(emm_fresh, title = "Top 10 Significant Taxa: Fresh")
+ggsave("DESeq2_Fresh_combined.png", plot = deseq_fresh_combined, width = 6, height = 4, dpi = 300)
+
+deseq_ferm_combined <- plot_emm_overall(emm_ferm, title = "Top 10 Significant Taxa: Fermented")
+ggsave("DESeq2_Ferm_combined.png", plot = deseq_ferm_combined, width = 6, height = 4, dpi = 300)
+
+deseq_microb_combined <- plot_emm_overall(emm_microb, title = "Top 10 Significant Taxa: Microbiome Washout")
+ggsave("DESeq2_Microb_combined.png", plot = deseq_microb_combined, width = 6, height = 4, dpi = 300)
+
+
+
+#facet plots
+plot_emm_facets <- function(emm_df, title = "LMM Top Taxa") {
+  ggplot(emm_df, aes(x = period, y = emmean)) +
+    geom_point(size = 3, color = "steelblue") +
+    geom_line(aes(group = 1), color = "steelblue") +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    facet_wrap(~ taxon, scales = "free_y") +
+    theme_bw() +
+    labs(
+      y = "VST abundance (estimated)",
+      x = "Period",
+      title = title
+    ) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+#apply function to all subset and save plot
+deseq_fresh_facet <- plot_emm_facets(emm_fresh, title = "Top 10 Significant Taxa: Fresh")
+ggsave("DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 6, height = 4, dpi = 300)
+
+deseq_ferm_facet <- plot_emm_facets(emm_ferm, title = "Top 10 Significant Taxa: Fermented")
+ggsave("DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 6, height = 4, dpi = 300)
+
+deseq_microb_facet <- plot_emm_facets(emm_microb, title = "Top 10 Significant Taxa: Microbiome Washout")
+ggsave("DESeq2_Microb_facet.png", plot = deseq_microb_facet, width = 6, height = 4, dpi = 300)
