@@ -15,5 +15,4 @@ qiime tools export \
 picrust2_pipeline.py \
 -s picrust/dna-sequences.fasta \
 -i picrust/feature-table.biom \
---placement_tool sepp \
 -o picrust_out
