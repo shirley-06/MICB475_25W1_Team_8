@@ -18,6 +18,8 @@ library(ggplot2)
 library (ggpubr)
 library(DESeq2)
 library(ggrepel)
+library(forcats)
+
 
 
 #### Load data ####
@@ -615,6 +617,50 @@ sig_all_merged <- bind_rows(sig_VEG_merged, sig_FERM_merged, sig_VEG_FERM_merged
 #export
 write.csv(sig_all_merged, "DESeq2_significant_taxa_with_taxonomy.csv", row.names = FALSE)
 
+#get top 10 enriched/depleted taxa per group
+top10_taxa <- sig_all_merged %>%
+  group_by(Enriched_in) %>%
+  arrange(desc(abs(log2FoldChange))) %>%  # use absolute fold change to capture strongest changes
+  slice_head(n = 10) %>%
+  ungroup()
+
+#preview and save
+top10_taxa
+write.csv(top10_taxa, "DESeq2_top10_taxa_per_group.csv", row.names = FALSE)
 
 
+#list for top 10 enriched/depleted taxa per comparison and per group
+top10_taxa_by_comparison <- sig_all_merged %>%
+  group_by(Comparison, Enriched_in) %>%
+  arrange(desc(abs(log2FoldChange))) %>%  # strongest fold changes first
+  slice_head(n = 10) %>%
+  ungroup()
 
+#preview and save
+top10_taxa_by_comparison
+write.csv(top10_taxa_by_comparison, "DESeq2_top10_taxa_per_comparison_group.csv", row.names = FALSE)
+
+#make a label for taxa (use Genus if available, otherwise Family)
+heatmap_data <- top10_taxa_by_comparison %>%
+  mutate(TaxonLabel = ifelse(!is.na(Genus), Genus, Family)) %>%
+  select(Comparison, TaxonLabel, log2FoldChange) %>%
+  # Optional: spread comparisons to columns (long format works for ggplot)
+  mutate(TaxonLabel = fct_reorder(TaxonLabel, log2FoldChange))
+
+#heatmap
+ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill = log2FoldChange)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "blue",
+    mid = "white",
+    high = "red",
+    midpoint = 0,
+    name = "log2FC"
+  ) +
+  labs(
+    x = "Comparison",
+    y = "Taxon (Genus/Family)",
+    title = "Top 10 Differentially Abundant Taxa Across Comparisons"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
