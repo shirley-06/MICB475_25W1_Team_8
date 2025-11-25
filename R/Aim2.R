@@ -536,11 +536,44 @@ ggsave("D2B_microbiome_WeightedUF.png", plot = beta_microbiome_WUF, width = 6, h
 
 
 
+#function to extract post-hoc contrasts as a table
+get_posthoc_table <- function(lmm_res, response_label = "Distance") {
+  contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
+    dplyr::mutate(
+      response = response_label
+    )
+  return(contrasts_df)
+}
+
+#extract post-hoc contrasts 
+posthoc_bc_fresh <- get_posthoc_table(lmm_bc_fresh, "Bray-Curtis - Fresh")
+posthoc_wu_fresh <- get_posthoc_table(lmm_wu_fresh, "Weighted UniFrac - Fresh")
+
+posthoc_bc_ferm <- get_posthoc_table(lmm_bc_ferm, "Bray-Curtis - Fermented")
+posthoc_wu_ferm <- get_posthoc_table(lmm_wu_ferm, "Weighted UniFrac - Fermented")
+
+posthoc_bc_microb <- get_posthoc_table(lmm_bc_microb, "Bray-Curtis - Washout")
+posthoc_wu_microb <- get_posthoc_table(lmm_wu_microb, "Weighted UniFrac - Washout")
+
+#combine all into a single table
+posthoc_all <- bind_rows(
+  posthoc_bc_fresh, posthoc_wu_fresh,
+  posthoc_bc_ferm, posthoc_wu_ferm,
+  posthoc_bc_microb, posthoc_wu_microb
+)
+
+#preview and export
+head(posthoc_all)
+write.csv(posthoc_all, "BetaDiversity_LMM_posthoc_contrasts.csv", row.names = FALSE)
+
+
 #### DESeq ####
 #controls for repeated measures
 design = ~ participant_id + period
 
-#run DESEQ2 for each subset
+#run DESeq2 for each subset
+#I also tried to run the DESeq analysis by adding 1 to avoid all zeros, but ran into error
+#code below does not include that +1 step
 #fresh
 dds_fresh <- phyloseq_to_deseq2(ps_fresh, ~ participant_id + period)
 
@@ -791,3 +824,95 @@ ggsave("DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 6, height = 4, 
 
 deseq_microb_facet <- plot_emm_facets(emm_microb, title = "Top 10 Significant Taxa: Microbiome Washout")
 ggsave("DESeq2_Microb_facet.png", plot = deseq_microb_facet, width = 6, height = 4, dpi = 300)
+
+
+#create function to merge taxa
+add_taxon_labels_safe <- function(lmm_results, physeq_obj) {
+  # Extract taxonomy table
+  tax_df <- as.data.frame(tax_table(physeq_obj))
+  tax_df$taxon <- rownames(tax_df)
+  
+  # Extract emmeans from LMM
+  emm_df <- lmm_results %>%
+    dplyr::filter(!is.na(model)) %>%
+    dplyr::mutate(emm_df = purrr::map(emm, ~ as.data.frame(.x$emmeans))) %>%
+    dplyr::select(taxon, emm_df) %>%
+    tidyr::unnest(cols = c(emm_df))
+  
+  # Merge taxonomy
+  emm_named <- emm_df %>%
+    left_join(tax_df %>% select(taxon, Family, Genus), by = "taxon") %>%
+    # Create label with fallback and uniqueness
+    mutate(
+      taxon_label = case_when(
+        !is.na(Genus) ~ paste(Family, Genus, sep = "_"),
+        !is.na(Family) ~ Family,
+        TRUE ~ taxon
+      ),
+      # Append OTU ID to make labels unique
+      taxon_label = paste0(taxon_label, "_", taxon)
+    )
+  
+  return(emm_named)
+}
+
+
+#apply function to subset
+emm_fresh_named  <- add_taxon_labels_safe(lmm_results_fresh, ps_fresh)
+emm_ferm_named   <- add_taxon_labels_safe(lmm_results_ferm, ps_ferm)
+emm_microb_named <- add_taxon_labels_safe(lmm_results_microb, ps_microb)
+
+
+#update line plots
+plot_emm_overall_safe <- function(emm_df, title = "LMM Top Taxa") {
+  ggplot(emm_df, aes(x = period, y = emmean, group = taxon_label, color = taxon_label)) +
+    geom_point(size = 2) +
+    geom_line() +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    theme_bw() +
+    labs(
+      y = "VST abundance (estimated)",
+      x = "Period",
+      title = title,
+      color = "Taxon"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "right"
+    )
+}
+
+#generate and save 
+deseq_fresh_combined  <- plot_emm_overall_safe(emm_fresh_named, title = "Top 10 Significant Taxa: Fresh")
+deseq_ferm_combined   <- plot_emm_overall_safe(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
+deseq_microb_combined <- plot_emm_overall_safe(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
+
+ggsave("DESeq2_Fresh_combined_safe.png", plot = deseq_fresh_combined, width = 8, height = 6, dpi = 300)
+ggsave("DESeq2_Ferm_combined_safe.png", plot = deseq_ferm_combined, width = 8, height = 6, dpi = 300)
+ggsave("DESeq2_Microb_combined_safe.png", plot = deseq_microb_combined, width = 8, height = 6, dpi = 300)
+
+
+#update facet plots
+plot_emm_facets_safe <- function(emm_df, title = "LMM Top Taxa") {
+  ggplot(emm_df, aes(x = period, y = emmean)) +
+    geom_point(size = 3, color = "steelblue") +
+    geom_line(aes(group = 1), color = "steelblue") +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    facet_wrap(~ taxon_label, scales = "free_y") +
+    theme_bw() +
+    labs(
+      y = "VST abundance (estimated)",
+      x = "Period",
+      title = title
+    ) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+#generate plots and save
+deseq_fresh_facet  <- plot_emm_facets_safe(emm_fresh_named, title = "Top 10 Significant Taxa: Fresh")
+deseq_ferm_facet   <- plot_emm_facets_safe(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
+deseq_microb_facet <- plot_emm_facets_safe(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
+
+ggsave("DESeq2_Fresh_facet_safe.png", plot = deseq_fresh_facet, width = 8, height = 6, dpi = 300)
+ggsave("DESeq2_Ferm_facet_safe.png", plot = deseq_ferm_facet, width = 8, height = 6, dpi = 300)
+ggsave("DESeq2_Microb_facet_safe.png", plot = deseq_microb_facet, width = 8, height = 6, dpi = 300)
