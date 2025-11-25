@@ -81,7 +81,6 @@ tax_table(fermentation_ps_raw)
 phy_tree(fermentation_ps_raw)
 
 
-
 #### Filter phyloseq object ####
 # Remove unwanted taxa: mitochondria, chloroplasts, Eukaryota, and Archaea
 ps_taxa_filter <- subset_taxa(
@@ -290,7 +289,10 @@ Veg_Shannon <- ggplot(sd_plot_veg, aes(x = period, y = Shannon, fill = period)) 
        y = "Shannon Index",
        fill = "Period") +
   theme(legend.position = "right",
-        strip.text = element_text(face = "bold"))
+        strip.text = element_text(face = "bold"),
+        panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
 
 # Boxplot of Faith's PD with Wilcoxon test annotations
 Veg_FaithPD <- ggplot(sd_plot_veg, aes(x = period, y = Faith_PD, fill = period)) +
@@ -308,7 +310,8 @@ Veg_FaithPD <- ggplot(sd_plot_veg, aes(x = period, y = Faith_PD, fill = period))
        fill = "Period") +
   theme(
     legend.position = "right",
-    strip.text = element_text(face = "bold"))
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1))
 
 
 #saving
@@ -352,7 +355,8 @@ Ferm_Shannon <- ggplot(sd_plot_ferm, aes(x = period, y = Shannon, fill = period)
        y = "Shannon Index",
        fill = "Period") +
   theme(legend.position = "right",
-        strip.text = element_text(face = "bold"))
+        strip.text = element_text(face = "bold"),
+        panel.border = element_rect(color = "black", fill = NA, size = 1))
 
 # Boxplot of Faith's PD with Wilcoxon test annotations
 Ferm_FaithPD <- ggplot(sd_plot_ferm, aes(x = period, y = Faith_PD, fill = period)) +
@@ -370,7 +374,8 @@ Ferm_FaithPD <- ggplot(sd_plot_ferm, aes(x = period, y = Faith_PD, fill = period
        fill = "Period") +
   theme(
     legend.position = "right",
-    strip.text = element_text(face = "bold"))
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1))
 
 
 #saving
@@ -428,8 +433,12 @@ bray_PCoA <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = G
        shape = "Group")
 
 #Faceted PCoA by group
-bray_PCoA_facet <- bray_PCoA + facet_wrap(~Group_new) +
-  theme(strip.text = element_text(face = "bold"))
+bray_PCoA_facet <- bray_PCoA +
+  facet_wrap(~Group_new) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)  # <-- adds border
+  )
 
 #Save plots
 ggsave("FreshvsFerm_Bray_PCoA.png", bray_PCoA, width = 6, height = 4, dpi = 300)
@@ -466,8 +475,12 @@ WUniFrac_PCoA <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = period, sh
        shape = "Group")
 
 # Faceted PCoA by group
-WUniFrac_PCoA_facet <- WUniFrac_PCoA + facet_wrap(~Group_new) +
-  theme(strip.text = element_text(face = "bold"))
+WUniFrac_PCoA_facet <- WUniFrac_PCoA +
+  facet_wrap(~Group_new) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)  # <-- adds facet border
+  )
 
 # Save plots
 ggsave("FreshvsFerm_WUniFrac_PCoA.png", WUniFrac_PCoA, width = 6, height = 4, dpi = 300)
@@ -569,3 +582,39 @@ head(sig_all)
 
 #save DESeq2 significant taxa as CSV
 write.csv(sig_all, "DESeq2_significant_taxa_all_comparisons.csv", row.names = FALSE)
+
+
+#merge DESeq2 analysis with taxonomy table
+#extract taxonomy table
+taxa_df <- as.data.frame(tax_table(ps_plus1))
+taxa_df$ASV <- rownames(taxa_df)
+
+#merge taxa into significant result table
+sig_VEG_merged <- left_join(
+  dplyr::rename(sig_VEG, ASV = Taxon),
+  taxa_df,
+  by = "ASV"
+)
+
+
+sig_FERM_merged <- left_join(
+  dplyr::rename(sig_FERM, ASV = Taxon),
+  taxa_df,
+  by = "ASV"
+)
+
+sig_VEG_FERM_merged <- left_join(
+  dplyr::rename(sig_VEG_FERM, ASV = Taxon),
+  taxa_df,
+  by = "ASV"
+)
+
+#combine all significant merged tables  
+sig_all_merged <- bind_rows(sig_VEG_merged, sig_FERM_merged, sig_VEG_FERM_merged)
+
+#export
+write.csv(sig_all_merged, "DESeq2_significant_taxa_with_taxonomy.csv", row.names = FALSE)
+
+
+
+
