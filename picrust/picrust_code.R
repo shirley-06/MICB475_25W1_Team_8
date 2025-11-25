@@ -9,94 +9,64 @@ library(ape)
 library(picante)
 library(vegan)
 
-#loading files
+#Loading files
 meta <- read_tsv(file="fermentation_metadata.tsv")
-ko_data <- read_tsv(file="combined_KO_predicted.tsv")
-ec_data <- read_tsv(file="combined_EC_predicted.tsv")
+ko_data <- read_tsv(file="pred_metagenome_unstrat.tsv")
 pathway_data <- read_tsv(file="path_abun_unstrat.tsv")
 
-#Transposing ko_data / swapping rows and columns
-transposed_ko_matrix <- t(ko_data)
-ko_transposed <- as.data.frame(transposed_ko_matrix)
-colnames(ko_transposed) <- ko_transposed[1, ]
-ko_transposed <- ko_transposed[-1, ]
-
-#Formatting tables
+#Formatting imported tables
 meta <- meta %>%
-  rename('sample_name'='sample-id')
+  rename('sample_id'='sample-id')
 
 pathway_data <- as.data.frame(pathway_data)
 
-#Formatting tables to remove missing sample IDs
-meta_cols <- select(meta, sample_name)
-meta_cols <- as.data.frame(meta_cols)
-colnames(meta_cols)[1] <- "sample_id"
+#####MetaCyc Analysis#####
 
-pathway_cols <- colnames(pathway_data)
-pathway_cols <- as.data.frame(pathway_cols)
-pathway_cols <- pathway_cols[-1,]
-pathway_cols <- as.data.frame(pathway_cols)
-colnames(pathway_cols)[1] <- "sample_id"
+###Pulling sample IDs from tables###
+#Filtering Metadata for P2 and P4#
+metadata_p2p4 <- meta %>%
+  filter(period %in% c("FERM","VEG"))
 
-missing_ids <- setdiff(meta_cols, pathway_cols)
-colnames(missing_ids)[1] <- "sample_name"
-print(missing_ids)
+#Metadata sample IDs#
+meta_samp_ids_p2p4 <- select(metadata_p2p4, sample_id) %>%
+  as.data.frame()
 
-###Removing missing sample IDs###
-meta_removed <- anti_join(meta, missing_ids, by = "sample_name")
+#Pathway/MetaCyc sample IDs#
+pathway_samp_ids <- colnames(pathway_data) %>%
+  as.data.frame()
+pathway_samp_ids <- pathway_samp_ids[-1,] %>%
+  as.data.frame()
+colnames(pathway_samp_ids)[1] <- "sample_id"
 
-pathway_data <- column_to_rownames(pathway_data, var = "pathway")
 
-###Performing differential analysis for pathways###
+##Creating list of shared sample IDs betweeen metadata and metacyc, for P2/P4##
+common_ids_pwy <- intersect(pathway_samp_ids, meta_samp_ids_p2p4)
+colnames(common_ids_pwy)[1] <- "sample_name"
+print(common_ids_pwy)
 
-daa_results_pwy = pathway_daa(abundance = pathway_data,
-                          metadata = meta_removed,
+###Removing missing sample IDs from metadata###
+meta_removed_p2p4 <- subset(metadata_p2p4, sample_id %in% common_ids_pwy$sample_name)
+
+###Removing missing sample IDs from pathway###
+pathway_data <- column_to_rownames(pathway_data, var ="pathway")
+common_ids_pwy_list <- as.character(common_ids_pwy$sample_name)
+pathway_removed_p2p4 <- pathway_data[, common_ids_pwy_list]
+
+#Running differential analysis
+
+daa_results_pwy = pathway_daa(abundance = pathway_removed_p2p4,
+                          metadata = meta_removed_p2p4,
                           group = "period",
                           daa_method = "ALDEx2")
 
-saveRDS(daa_results_pwy, file = "daa_results_pwy.rds")
+####Running same protocol - filtered tables for FERM and VEG####
 
-annotated_daa_pwy <- pathway_annotation(pathway = "MetaCyc",
-                   daa_results_df = daa_results,
-                   ko_to_kegg = FALSE)
-
-pathway_graph <- pathway_errorbar(abundance = daa_results,
-                  daa_results_df = pathway_ann_daa,
-                  Group = meta_removed$period,
-                  p_values_threshold = 5e-11,
-                  order = "pathway class",
-                  ko_to_kegg = FALSE,
-                  p_value_bar = TRUE,
-                  x_lab = "pathway_name")
+#Using same metadata objects from MetaCyc analysis
 
 
-####Trying with filtered tables for FERM and VEG####
 
-##Creating filtered metadata with non-matching sample IDs + non-relevant period removed##
-metadata_removed_filt <- meta_removed %>%
-  filter(period %in% c("FERM","VEG"))
 
-#Extracting list of sample IDs - FERM/VEG period#
-meta_cols_filt <- metadata_removed_filt %>%
-  select(sample_name)
-meta_cols_filt <- as.data.frame(meta_cols_filt)
-colnames(meta_cols_filt)[1] <- "sample_id"
 
-pathway_cols_filt <- colnames(pathway_data)
-pathway_cols_filt <- as.data.frame(pathway_cols_filt)
-colnames(pathway_cols_filt)[1] <- "sample_id"
-
-#Creating list of intersecting samples between period-filtered metadata and pathway_data#
-meta_removed_filt <- intersect(pathway_cols_filt, meta_cols_filt)
-meta_removed_filt <- unlist(meta_removed_filt)
-
-#Selecting sample IDs in pathway_data that match filtered metadata
-pathway_data_filt <- pathway_data[,meta_removed_filt]
-
-daa_results_pwy_filtered = pathway_daa(abundance = pathway_data_filt,
-                              metadata = metadata_removed_filt,
-                              group = "period",
-                              daa_method = "ALDEx2")
 
 
 
