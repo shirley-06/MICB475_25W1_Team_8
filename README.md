@@ -1,5 +1,10 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
+
+### November 23, 2025
+#### Agenda
+- Review presentation slides: https://docs.google.com/presentation/d/1trzSk9QiX7H4Hapd21qbCd0LNwxFgDR2B8-dG_0t8vs/edit?usp=sharing
+
 ### November 19, 2025
 #### Minutes
 - Went over plots
