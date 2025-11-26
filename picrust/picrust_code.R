@@ -66,6 +66,47 @@ pwy_annotated <- pathway_annotation(pathway = "MetaCyc",
                    daa_results_df = daa_results_pwy,
                    ko_to_kegg = FALSE)
 
+#Checking number of significant hits#
+significant_pwy <- pwy_annotated %>% 
+  filter(p_adjust < 0.05)
+#Did not include log FC - would only have 1 result for heatmap
+
+##Generating MetaCyc PCA plot##
+colnames(meta_removed_p2p4)[1] <- "sample_name"
+
+pca_pwy <- pathway_pca(abundance = pathway_removed_p2p4,
+                       metadata = meta_removed_p2p4,
+                       group = "period")
+
+ggsave("pca_pwy.png", plot=pca_pwy, width=6, height=6, units="in")
+
+##Generating heatmap##
+pwy_sig_features <- significant_pwy %>%
+  pull("feature") %>%
+  unique()
+
+pwy_rel_abun <- pathway_data %>%
+  apply(2,function(x) x/sum(x)) %>%
+  as.data.frame()
+
+pwy_stats = pwy_rel_abun %>%
+  t() %>%
+  as.data.frame() %>%
+  select(all_of(pwy_sig_features)) %>%
+  cor(method = "spearman")
+
+color_palette <- colorRampPalette(c("blue","white","red"))(40)
+breaks <- seq(-1, 1, length.out=41)
+
+pwy_heatmap <- pheatmap(pwy_stats,
+                       clustering_distance_rows = "euclidean",
+                       clustering_distance_cols = "euclidean",
+                       clustering_method = "complete",
+                       color = color_palette, breaks = breaks,
+                       main = "",
+                       fontsize_row = 10, fontsize_col = 10,
+                       filename = "pwy_heatmap.png",height= 9, width = 9)
+
 
 ####Running same protocol - filtered tables for FERM and VEG####
 
