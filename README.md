@@ -1,6 +1,50 @@
 # MICB 475: Data Science Reserach in Microbiology
 ## Meeting Agenda and Minutes
 
+### November 26, 2025
+#### Agenda
+
+#### Minutes
+- Went over plots
+- Figure orders:
+- Figure 1: study pipeline (methods)
+- Figure 2: 2 panels Beta Diveristy, 1)Bray Curtis 2) Weighted unifrac (dont use separate one)
+- Figure 3: 3 panels (a,b,c) LMM Alpha diversity, only faiths. a=microbiome washout, b= fresh, c=fermented
+- Figure 4: 3 panels (a,b,c) LMM Beta Diversity, a=WO bray curtis, b=fresh, c=fermented
+- Figure 5: 4 panels Deseq2 (A,B,C =volcano plots, D=heat map)
+- LMM Shannon into supplementle (s1), same layout (3 panels)
+- Figure 6: placeholder for functional 
+- Probs no time to put functional in presentaton (pick and choose only a couple of figures for presentation only)
+- Presentation:
+  - Title = main conclusion
+  - Just have fermented foods, why care comparing, knowledge gap, about dataset slide for intro
+  - No need to present original findings, just need 1-2 sentences for their findings
+  - Majority of presentation should be our data
+  - Just need hypothesis, no research question
+  - Have aims then have results
+  - 10 slides max, intro 2-3 slides max
+- Decide if need meeting with Chad (email him by end of this week) 
+
+####Action Items:
+
+- Methods figure: Combine all annotations in for aims in one figure  
+- Annotate what everything stands for (WO, P1, etc)
+- Alpha diveristy- Shannon: no need for figure titles, description should include it
+- Can have labels in powerpoint indicating shannon vs faith's PD
+- Axis have percent variance for Beta diveristy Weighted unifrac
+- Check DESeq2 plots: reference group should be control  (base and WO as reference group)
+- In figure legend for figure 4, indiciate it is top 10 Taxa
+- LMM anlaysis: need to explain what it is in presentation
+- LMM figures need to explain in presentation
+- LMM Alpha diversity fresh: colored box plots, p-values are meaningful, annotate p-values onto graph, no need for tables
+- See fresh vs fermented effect in LMM Alpha diversity
+- Combined LMM plot: tilt 45 angle
+- no "ns" for LMM Beta Diversity, make cleaner
+- PICRUST2: try to get bar graphs to look at pathway,
+- Try to work with Avril get bar plot to work (picrust) 
+
+
+
 ### November 23, 2025
 #### Agenda
 - Aim 1-3 completed, review plots: https://docs.google.com/presentation/d/1X5yBkTdQ4A-YZ4Bgd1uC5mQH-0ZfhdykHSJ4riY2DSY/edit?usp=sharing
