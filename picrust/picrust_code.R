@@ -1,5 +1,6 @@
 #Install packages
 #BiocManager::install('ALDEx2')
+#install.packages("pheatmap")
 
 library(tidyverse)
 library(dplyr)
@@ -8,6 +9,8 @@ library(ggpicrust2)
 library(ape)
 library(picante)
 library(vegan)
+library(GGally)
+library(pheatmap)
 
 #Loading files
 meta <- read_tsv(file="fermentation_metadata.tsv")
@@ -52,25 +55,101 @@ pathway_data <- column_to_rownames(pathway_data, var ="pathway")
 common_ids_pwy_list <- as.character(common_ids_pwy$sample_name)
 pathway_removed_p2p4 <- pathway_data[, common_ids_pwy_list]
 
-#Running differential analysis
+###Running differential analysis with LinDA###
 
 daa_results_pwy = pathway_daa(abundance = pathway_removed_p2p4,
                           metadata = meta_removed_p2p4,
                           group = "period",
-                          daa_method = "ALDEx2")
+                          daa_method = "LinDA")
+
+pwy_annotated <- pathway_annotation(pathway = "MetaCyc",
+                   daa_results_df = daa_results_pwy,
+                   ko_to_kegg = FALSE)
+
 
 ####Running same protocol - filtered tables for FERM and VEG####
 
-#Using same metadata objects from MetaCyc analysis
+#Using the same metadata objects from MetaCyc analysis
 
+#KO sample IDs#
+ko_data <- column_to_rownames(ko_data, var = "function")
+ko_samp_ids <- colnames(ko_data) %>%
+  as.data.frame()
+colnames(ko_samp_ids)[1] <- "sample_id"
 
+##Creating list of shared sample IDs betweeen metadata and ko, for P2/P4##
+common_ids_ko <- intersect(ko_samp_ids, meta_samp_ids_p2p4)
+colnames(common_ids_ko)[1] <- "sample_name"
+print(common_ids_ko)
 
+###Removing missing sample IDs from metadata###
+meta_removed_p2p4_ko <- subset(metadata_p2p4, sample_id %in% common_ids_ko$sample_name)
 
+###Removing missing sample IDs from pathway###
+common_ids_ko_list <- as.character(common_ids_ko$sample_name)
+ko_removed_p2p4 <- ko_data[, common_ids_ko_list]
 
+###Running differential analysis with LinDA###
 
+daa_results_ko_linda = pathway_daa(abundance = ko_removed_p2p4,
+                                   metadata = meta_removed_p2p4_ko,
+                                   group = "period",
+                                   daa_method = "LinDA",
+                                   select=NULL, reference=NULL)
 
+ko_annotated_linda <- pathway_annotation(pathway = "KO",
+                                   daa_results_df = daa_results_ko_linda,
+                                   ko_to_kegg = TRUE)
 
+#Checking number of significant hits#
+significant_ko <- ko_annotated_linda %>% 
+  filter(p_adjust < 0.05, abs(log2FoldChange)>2)
 
+#Generating errorbar plot#
+#This feature is buggy - the fixed plugin isn't available
+ko_linda_errorbar <- pathway_errorbar(abundance = ko_removed_p2p4,
+                 daa_results_df = significant_ko,
+                 Group = meta_removed_p2p4_ko$period,
+                 ko_to_kegg = TRUE,
+                 p_values_threshold = 5e-2,
+                 p_value_bar = TRUE)
 
+ggsave("ko_linda_errorbar.png", plot=ko_linda_errorbar, width=6, height=6, units="in")
+
+##Generating KO PCA plot##
+colnames(meta_removed_p2p4_ko)[1] <- "sample_name"
+
+pca_ko <- pathway_pca(abundance = ko_removed_p2p4,
+                      metadata = meta_removed_p2p4_ko,
+                      group = "period")
+
+ggsave("pca_ko.png", plot=pca_ko, width=6, height=6, units="in")
+
+##Generating heatmap##
+ko_sig_features <- significant_ko %>%
+  pull("feature") %>%
+  unique()
+
+ko_rel_abun <- ko_data %>%
+  apply(2,function(x) x/sum(x)) %>%
+  as.data.frame()
+
+ko_stats = ko_rel_abun %>%
+  t() %>%
+  as.data.frame() %>%
+  select(all_of(ko_sig_features)) %>%
+  cor(method = "spearman")
+
+color_palette <- colorRampPalette(c("blue","white","red"))(40)
+breaks <- seq(-1, 1, length.out=41)
+
+ko_heatmap <- pheatmap(ko_stats,
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         clustering_method = "complete",
+         color = color_palette, breaks = breaks,
+         main = "",
+         fontsize_row = 10, fontsize_col = 10,
+         filename = "ko_heatmap.png",height= 9, width = 9)
 
 
