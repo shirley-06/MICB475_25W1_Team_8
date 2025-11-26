@@ -3,6 +3,7 @@
 
 ### November 23, 2025
 #### Agenda
+- Aim 1-3 completed, review plots: https://docs.google.com/presentation/d/1X5yBkTdQ4A-YZ4Bgd1uC5mQH-0ZfhdykHSJ4riY2DSY/edit?usp=sharing
 - Review presentation slides: https://docs.google.com/presentation/d/1trzSk9QiX7H4Hapd21qbCd0LNwxFgDR2B8-dG_0t8vs/edit?usp=sharing
 
 ### November 19, 2025
