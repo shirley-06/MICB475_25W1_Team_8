@@ -284,7 +284,10 @@ Veg_Shannon <- ggplot(sd_plot_veg, aes(x = period, y = Shannon, fill = period)) 
   stat_compare_means(aes(group = period),
                      method = "wilcox.test",
                      label = "p.format",
-                     paired = FALSE) +
+                     paired = FALSE,
+                     label.y = max(sd_plot_veg$Shannon) * 1.05,  
+                     label.x = 1.5                            
+  ) +
   theme_minimal() +
   labs(title = "Shannon Alpha Diversity Before and After Fresh Vegetable",
        x = "Period",
@@ -304,7 +307,10 @@ Veg_FaithPD <- ggplot(sd_plot_veg, aes(x = period, y = Faith_PD, fill = period))
   stat_compare_means(aes(group = period),
                      method = "wilcox.test",
                      label = "p.format",
-                     paired = FALSE) +
+                     paired = FALSE,
+                     label.y = max(sd_plot_veg$Faith_PD) * 1.05,  
+                     label.x = 1.5                            
+  ) +
   theme_minimal() +
   labs(title = "Faith's Phylogenetic Diversity Before and After Fresh Vegetable",
        x = "Period",
@@ -331,7 +337,7 @@ sd_plot_ferm <- sd_df %>%
 # Make period a factor for plotting
 sd_plot_ferm$period <- factor(sd_plot_ferm$period,
                          levels = c("WO1", "FERM"),
-                         labels = c("Base", "Ferm"))
+                         labels = c("WO1", "Ferm"))
 # Recode Group_new and reorder group
 sd_plot_ferm$Group_new <- recode(sd_plot_ferm$Group_new,
                             "CTRL_AB" = "Healthy",
@@ -346,11 +352,14 @@ head(sd_plot_ferm)
 Ferm_Shannon <- ggplot(sd_plot_ferm, aes(x = period, y = Shannon, fill = period)) +
   geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
   facet_wrap(~Group_new) +
-  scale_fill_manual(values = c("Base" = "#56B4E9", "Ferm" = "#E69F00")) +
+  scale_fill_manual(values = c("WO1" = "#56B4E9", "Ferm" = "#E69F00")) +
   stat_compare_means(aes(group = period),
                      method = "wilcox.test",
                      label = "p.format",
-                     paired = FALSE) +
+                     paired = FALSE,
+                     label.y = max(sd_plot_ferm$Shannon) * 1.05,  
+                     label.x = 1.5                            
+  ) +
   theme_minimal() +
   labs(title = "Shannon Alpha Diversity Before and After Fermented Vegetable",
        x = "Period",
@@ -364,11 +373,14 @@ Ferm_Shannon <- ggplot(sd_plot_ferm, aes(x = period, y = Shannon, fill = period)
 Ferm_FaithPD <- ggplot(sd_plot_ferm, aes(x = period, y = Faith_PD, fill = period)) +
   geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
   facet_wrap(~Group_new) +
-  scale_fill_manual(values = c("Base" = "#56B4E9", "Ferm" = "#E69F00")) +
+  scale_fill_manual(values = c("WO1" = "#56B4E9", "Ferm" = "#E69F00")) +
   stat_compare_means(aes(group = period),
                      method = "wilcox.test",
                      label = "p.format",
-                     paired = FALSE) +
+                     paired = FALSE,
+                     label.y = max(sd_plot_ferm$Faith_PD) * 1.05,  
+                     label.x = 1.5                            
+  ) +
   theme_minimal() +
   labs(title = "Faith's Phylogenetic Diversity Before and After Fermented Vegetable",
        x = "Period",
@@ -414,6 +426,11 @@ print(adonis_bc)
 
 #perform PCoA and create a data frame for plotting
 pcoa_bc <- cmdscale(bray_dist, eig = TRUE, k = 2)
+
+#percent 
+eig_vals <- pcoa_bc$eig
+var_exp <- round((eig_vals / sum(eig_vals)) * 100, 2)
+
 pcoa_df <- data.frame(
   Sample = rownames(meta_df),
   Axis1 = pcoa_bc$points[,1],
@@ -426,20 +443,23 @@ pcoa_df <- data.frame(
 bray_PCoA <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
   stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
-  scale_color_manual(values = c("VEG" = "#16A7A1", "FERM" = "#A09BC2")) +
+  scale_color_manual(values = c("VEG" = "#F8766D", "FERM" = "#619CFF")) +
   theme_minimal() +
-  labs(title = "PCoA of Bray-Curtis Distances (VEG vs FERM)",
-       x = "PCoA 1",
-       y = "PCoA 2",
-       color = "Period",
-       shape = "Group")
+  labs(
+    title = "PCoA of Bray-Curtis Distances (VEG vs FERM)",
+    x = paste0("PCoA 1 (", var_exp[1], "%)"),
+    y = paste0("PCoA 2 (", var_exp[2], "%)"),
+    color = "Period",
+    shape = "Group"
+  )
+
 
 #Faceted PCoA by group
 bray_PCoA_facet <- bray_PCoA +
   facet_wrap(~Group_new) +
   theme(
     strip.text = element_text(face = "bold"),
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # <-- adds border
+    panel.border = element_rect(color = "black", fill = NA, size = 1) 
   )
 
 #Save plots
@@ -468,11 +488,11 @@ pcoa_df_wu <- data.frame(
 WUniFrac_PCoA <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
   stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
-  scale_color_manual(values = c("VEG" = "#16A7A1", "FERM" = "#A09BC2")) +
+  scale_color_manual(values = c("VEG" = "#F8766D", "FERM" = "#619CFF")) +
   theme_minimal() +
   labs(title = "PCoA of Weighted UniFrac Distances (VEG vs FERM)",
-       x = "PCoA 1",
-       y = "PCoA 2",
+       x = paste0("PCoA 1 (", var_exp[1], "%)"),
+       y = paste0("PCoA 2 (", var_exp[2], "%)"),
        color = "Period",
        shape = "Group")
 
@@ -484,6 +504,7 @@ WUniFrac_PCoA_facet <- WUniFrac_PCoA +
     panel.border = element_rect(color = "black", fill = NA, size = 1)  # <-- adds facet border
   )
 
+
 # Save plots
 ggsave("FreshvsFerm_WUniFrac_PCoA.png", WUniFrac_PCoA, width = 6, height = 4, dpi = 300)
 ggsave("FreshvsFerm_WUniFrac_PCoA_facet.png", WUniFrac_PCoA_facet, width = 6, height = 4, dpi = 300)
@@ -493,7 +514,7 @@ ggsave("FreshvsFerm_WUniFrac_PCoA_facet.png", WUniFrac_PCoA_facet, width = 6, he
 #add 1 to OTU counts to handle zeros
 ps_plus1 <- transform_sample_counts(ferm_rarefac, function(x) x + 1)
 
-#subset phyloseq object for Base vs VEG
+#subset phyloseq object for Base vs VEG -- 'base' is the reference group
 ps_veg <- subset_samples(ps_plus1, period %in% c("Base", "VEG"))
 #convert to DESeq2 object and run DESeq
 dds_VEG <- phyloseq_to_deseq2(ps_veg, ~ period)
@@ -502,7 +523,7 @@ dds_VEG <- DESeq(dds_VEG)
 res_VEG <- results(dds_VEG, contrast = c("period", "VEG", "Base"), tidy = TRUE)
 
 
-#subset phyloseq object for WO1 vs FERM
+#subset phyloseq object for WO1 vs FERM -- 'WO1' is the reference group
 ps_ferm <- subset_samples(ps_plus1, period %in% c("WO1", "FERM"))
 #convert to DESeq2 object and run DESeq
 dds_FERM <- phyloseq_to_deseq2(ps_ferm, ~ period)
@@ -510,7 +531,7 @@ dds_FERM <- DESeq(dds_FERM)
 #extract results
 res_FERM <- results(dds_FERM, contrast = c("period", "FERM", "WO1"), tidy = TRUE)
 
-#subset phyloseq object for VEG vs FERM
+#subset phyloseq object for VEG vs FERM -- 'VEG' is the reference group
 ps_deseq <- subset_samples(ps_plus1, period %in% c("VEG", "FERM"))
 #convert to DESeq2 object and run DESeq
 dds_VEG_FERM <- phyloseq_to_deseq2(ps_deseq, ~ period)
@@ -521,7 +542,6 @@ res_VEG_FERM <- results(dds_VEG_FERM, contrast = c("period", "FERM", "VEG"), tid
 
 #function to create volcano plot from DESeq2 results
 plot_volcano <- function(res_df, title = "Volcano Plot") {
-  
   #add a significance column
   res_df <- res_df %>%
     mutate(Significant = case_when(
@@ -529,7 +549,6 @@ plot_volcano <- function(res_df, title = "Volcano Plot") {
       padj < 0.05 & log2FoldChange < 0 ~ "Down",
       TRUE ~ "NS"
     ))
-  
   #create volcano plot
   p <- ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = Significant)) +
     geom_point(alpha = 0.7, size = 2) +
@@ -595,21 +614,18 @@ taxa_df$ASV <- rownames(taxa_df)
 sig_VEG_merged <- left_join(
   dplyr::rename(sig_VEG, ASV = Taxon),
   taxa_df,
-  by = "ASV"
-)
+  by = "ASV")
 
 
 sig_FERM_merged <- left_join(
   dplyr::rename(sig_FERM, ASV = Taxon),
   taxa_df,
-  by = "ASV"
-)
+  by = "ASV")
 
 sig_VEG_FERM_merged <- left_join(
   dplyr::rename(sig_VEG_FERM, ASV = Taxon),
   taxa_df,
-  by = "ASV"
-)
+  by = "ASV")
 
 #combine all significant merged tables  
 sig_all_merged <- bind_rows(sig_VEG_merged, sig_FERM_merged, sig_VEG_FERM_merged)
@@ -632,7 +648,7 @@ write.csv(top10_taxa, "DESeq2_top10_taxa_per_group.csv", row.names = FALSE)
 #list for top 10 enriched/depleted taxa per comparison and per group
 top10_taxa_by_comparison <- sig_all_merged %>%
   group_by(Comparison, Enriched_in) %>%
-  arrange(desc(abs(log2FoldChange))) %>%  # strongest fold changes first
+  arrange(desc(abs(log2FoldChange))) %>%  #strongest fold changes first
   slice_head(n = 10) %>%
   ungroup()
 
@@ -642,18 +658,34 @@ write.csv(top10_taxa_by_comparison, "DESeq2_top10_taxa_per_comparison_group.csv"
 
 #make a label for taxa (use Genus if available, otherwise Family)
 heatmap_data <- top10_taxa_by_comparison %>%
-  mutate(TaxonLabel = ifelse(!is.na(Genus), Genus, Family)) %>%
+  mutate(
+    #remove 'g__' and 'f__' prefixes
+    Genus = sub("^g__", "", Genus),
+    Family = sub("^f__", "", Family),
+    TaxonLabel = ifelse(!is.na(Genus) & Genus != "", Genus, Family) #make TaxonLabel
+  ) %>%
   select(Comparison, TaxonLabel, log2FoldChange) %>%
-  # Optional: spread comparisons to columns (long format works for ggplot)
   mutate(TaxonLabel = fct_reorder(TaxonLabel, log2FoldChange))
 
+
 #heatmap
-ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill = log2FoldChange)) +
+heatmap_data <- heatmap_data %>%
+  mutate(
+    Comparison = factor(
+      recode(Comparison,
+             "VEG vs Base" = "Base vs VEG",
+             "FERM vs WO1" = "WO1 vs FERM",
+             "FERM vs VEG" = "VEG vs FERM"),
+      levels = c("Base vs VEG", "WO1 vs FERM", "VEG vs FERM")
+    )
+  )
+
+Top10_heatmap <- ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill = log2FoldChange)) +
   geom_tile(color = "white") +
   scale_fill_gradient2(
-    low = "blue",
+    low = "red",
     mid = "white",
-    high = "red",
+    high = "blue",
     midpoint = 0,
     name = "log2FC"
   ) +
@@ -664,3 +696,5 @@ ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill = log2FoldChange))
   ) +
   theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("A1_DESeq2_Top10.png", Top10_heatmap, width = 6, height = 4, dpi = 300)
