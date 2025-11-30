@@ -153,6 +153,103 @@ LMM_fresh_veg_shannon <- ggplot(emm_df_fresh, aes(x=period, y=emmean)) +
 ggsave("LMM_Fresh_Veg_Shannon.png", plot = LMM_fresh_veg_shannon, width = 6, height = 4, dpi = 300)
 
 
+# Pairwise contrasts from the LMM
+contrasts_fresh <- emmeans(model_shannon_fresh, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+# Correctly prepare table for plotting significance
+pval_table <- contrasts_fresh %>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".*- ", "", contrast),
+    y.position = sapply(group1, function(g) {
+      max(emm_df_fresh$emmean[emm_df_fresh$period == g]) + 0.25
+    }),
+    label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*"
+    )
+  ) %>%
+  filter(p.value < 0.05) 
+
+
+
+LMM_fresh_veg_shannon_sig <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Fresh Intervention – Shannon") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.15
+  ) +
+  
+  # Increase y-axis limits
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1)))  # add 5% below, 20% above
+
+
+
+LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
+  
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.5, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.1
+  ) +
+  
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Fresh Intervention – Shannon") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "VEG" = "#E69F00", "WO1" = "#009E73"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##Fresh Faith LMM
 model_faith_fresh <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_fresh)
 
