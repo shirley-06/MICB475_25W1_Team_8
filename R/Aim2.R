@@ -129,41 +129,25 @@ sum(is.na(meta_microb$participant_id))
 ##fresh shannon LMM (period as the fixed effects and participant_id as the random effect)
 model_shannon_fresh <- lmer(Shannon ~ period + (1 | participant_id), data = meta_fresh)
 
-#perform ANOVA to test 
+#perform ANOVA to test and post-hoc test
 anova(model_shannon_fresh)
-
-#post-hoc tests (period comparisons to test which periods differ from each other)
 emmeans(model_shannon_fresh, pairwise ~ period)
 
-#extract the estimated marginal means from each period
-emm_fresh_shannon <- emmeans(model_shannon_fresh, ~ period)
-#convert estimated marginal means output into a data frame for plotting
-emm_df_fresh <- as.data.frame(emm_fresh_shannon)
-
-#plot the estimated means 
-LMM_fresh_veg_shannon <- ggplot(emm_df_fresh, aes(x=period, y=emmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
-  ylab("Shannon Diversity") +
-  xlab("Period") +
-  ggtitle("Fresh Intervention – Shannon") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggsave("LMM_Fresh_Veg_Shannon.png", plot = LMM_fresh_veg_shannon, width = 6, height = 4, dpi = 300)
-
-
-# Pairwise contrasts from the LMM
-contrasts_fresh <- emmeans(model_shannon_fresh, pairwise ~ period)$contrasts %>%
+#extract the estimated marginal means from each period and convert to data frame
+emm_df_fresh_s <- emmeans(model_shannon_fresh, ~ period) %>% 
   as.data.frame()
 
-# Correctly prepare table for plotting significance
-pval_table <- contrasts_fresh %>%
+#extract pairwise contrasts
+contrasts_fresh_s <- emmeans(model_shannon_fresh, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+#prepare table for significance
+pval_table_FRS <- contrasts_fresh_s %>%
   mutate(
     group1 = sub(" - .*", "", contrast),
     group2 = sub(".*- ", "", contrast),
     y.position = sapply(group1, function(g) {
-      max(emm_df_fresh$emmean[emm_df_fresh$period == g]) + 0.25
+      max(emm_df_fresh_s$emmean[emm_df_fresh_s$period == g]) + 0.25
     }),
     label = case_when(
       p.value < 0.001 ~ "***",
@@ -173,9 +157,8 @@ pval_table <- contrasts_fresh %>%
   ) %>%
   filter(p.value < 0.05) 
 
-
-
-LMM_fresh_veg_shannon_sig <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
+#plot
+LMM_fresh_veg_shannon <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
   ylab("Shannon Diversity") +
@@ -183,22 +166,19 @@ LMM_fresh_veg_shannon_sig <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
   ggtitle("Fresh Intervention – Shannon") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
-  
   # Add significance labels
   stat_pvalue_manual(
-    pval_table,
+    pval_table_FRS,
     label = "label",
     tip.length = 0.03,
     step.increase = 0.15
   ) +
-  
-  # Increase y-axis limits
-  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1)))  # add 5% below, 20% above
+  #increase y-axis limits
+ scale_y_continuous(expand = expansion(mult = c(0.05, 0.1)))
 
 
-
-LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
-  
+#box-like plot
+LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
   # box-like rectangles for CI, filled by period
   geom_rect(
     aes(
@@ -208,16 +188,16 @@ LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
       ymax = upper.CL,
       fill = period
     ),
-    alpha = 0.5, color = "black",
+    alpha = 0.7, color = "black",
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
-    pval_table,
+    pval_table_FRS,
     label = "label",
     tip.length = 0.03,
     step.increase = 0.1
@@ -234,75 +214,194 @@ LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh, aes(x = period, y = emmean)) +
   scale_fill_manual(values = c("Base" = "#56B4E9", "VEG" = "#E69F00", "WO1" = "#009E73"))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#save
+ggsave("LMM_Fresh_Veg_Faith.png", plot = LMM_fresh_veg_shannon, width = 6, height = 4, dpi = 300)
+ggsave("LMM_Fresh_Veg_Faith_box.png", plot = LMM_fresh_veg_shannon_box, width = 6, height = 4, dpi = 300)
 
 
 ##Fresh Faith LMM
 model_faith_fresh <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_fresh)
 
-#ANOVA
+#ANOVA and post-hoc contrasts
 anova(model_faith_fresh)
-
-#post-hoc contrasts
 emmeans(model_faith_fresh, pairwise ~ period)
 
-#extract the estimated marginal means from each period
-emm_fresh_faith <- emmeans(model_faith_fresh, ~ period)
-#convert estimated marginal means output into a data frame for plotting
-emm_df_faith_fresh <- as.data.frame(emm_fresh_faith)
+#extract the estimated marginal means from each period and convert to data frame
+emm_df_fresh_f <- emmeans(model_faith_fresh, ~ period) %>% 
+  as.data.frame()
 
+#extract pairwise contrasts
+contrasts_fresh_f <- emmeans(model_faith_fresh, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+#prepare table for significance
+pval_table_FRF <- contrasts_fresh_f %>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".*- ", "", contrast),
+    y.position = sapply(group1, function(g) {
+      max(emm_df_fresh_f$emmean[emm_df_fresh_f$period == g]) + 2.5
+    }),
+    label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*"
+    )
+  ) %>%
+  filter(p.value < 0.05) 
 
 #plot
-LMM_fresh_veg_faith <- ggplot(emm_df_faith_fresh, aes(x=period, y=emmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+LMM_fresh_veg_faith <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
   ylab("Faith's PD") +
   xlab("Period") +
   ggtitle("Fresh Intervention – Faith's PD") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FRF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.15
+  ) +
+  #increase y-axis limits
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1))) 
+
+
+#box-like plot
+LMM_fresh_veg_faith_box <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FRF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.1
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Fresh Intervention – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "VEG" = "#E69F00", "WO1" = "#009E73"))
+
 
 #save plot
 ggsave("LMM_Fresh_Veg_Faith.png", plot = LMM_fresh_veg_faith, width = 6, height = 4, dpi = 300)
-
-
+ggsave("LMM_Fresh_Veg_Faith_box.png", plot = LMM_fresh_veg_faith_box, width = 6, height = 4, dpi = 300)
 
 
 ##Ferm Shannon LMM
 model_shannon_ferm <- lmer(Shannon ~ period + (1 | participant_id), data = meta_ferm)
+
 #ANOVA and post-hoc contrasts
 anova(model_shannon_ferm)
 emmeans(model_shannon_ferm, pairwise ~ period)
 
-#extract the estimated marginal means from each period and convert output into a data frame for plotting
-emm_shannon_ferm <- emmeans(model_shannon_ferm, ~ period)
-emm_df_shannon_ferm <- as.data.frame(emm_shannon_ferm)
+#extract the estimated marginal means from each period and convert to data frame
+emm_df_ferm_s <- emmeans(model_shannon_ferm, ~ period) %>% 
+  as.data.frame()
+
+#extract pairwise contrasts
+contrasts_ferm_s <- emmeans(model_shannon_ferm, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+#prepare table for significance
+pval_table_FES <- contrasts_ferm_s %>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".*- ", "", contrast),
+    y.position = sapply(group1, function(g) {
+      max(emm_df_ferm_s$emmean[emm_df_ferm_s$period == g]) + 1
+    }),
+    label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*"
+    )
+  ) %>%
+  filter(p.value < 0.05) 
 
 #plot
-LMM_ferm_veg_shannon <- ggplot(emm_df_shannon_ferm, aes(x=period, y=emmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+LMM_ferm_veg_shannon <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
   ylab("Shannon Diversity") +
   xlab("Period") +
   ggtitle("Fermentation Intervention – Shannon") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FES,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.15
+  ) +
+  #increase y-axis limits
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1))) 
+
+
+#box-like plot
+LMM_ferm_veg_shannon_box <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FES,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = .5
+  ) +
+  
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Fermentation Intervention – Shannon") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "FERM" = "#E69F00", "WO2" = "#009E73"))
 
 #save plot
 ggsave("LMM_Ferm_Veg_Shannon.png", plot = LMM_ferm_veg_shannon, width = 6, height = 4, dpi = 300)
+ggsave("LMM_Ferm_Veg_Shannon_box.png", plot = LMM_ferm_veg_shannon_box, width = 6, height = 4, dpi = 300)
 
 
 
@@ -313,46 +412,182 @@ model_faith_ferm <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_f
 anova(model_faith_ferm)
 emmeans(model_faith_ferm, pairwise ~ period)
 
-#extract the estimated marginal means from each period and convert output into a data frame for plotting
-emm_faith_ferm <- emmeans(model_faith_ferm, ~ period)
-emm_df_faith_ferm <- as.data.frame(emm_faith_ferm)
+#extract the estimated marginal means from each period and convert to data frame
+emm_df_ferm_f <- emmeans(model_faith_ferm, ~ period) %>% 
+  as.data.frame()
+
+#extract pairwise contrasts
+contrasts_ferm_f <- emmeans(model_faith_ferm, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+#prepare table for significance
+pval_table_FEF <- contrasts_ferm_f %>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".*- ", "", contrast),
+    y.position = sapply(group1, function(g) {
+      max(emm_df_ferm_f$emmean[emm_df_ferm_f$period == g]) + 3.25
+    }),
+    label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*"
+    )
+  ) %>%
+  filter(p.value < 0.05) 
 
 #plot
-LMM_ferm_veg_faith <- ggplot(emm_df_faith_ferm, aes(x=period, y=emmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+LMM_ferm_veg_faith <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Ferm Intervention – Faith's PD") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FEF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.1
+  ) +
+  #increase y-axis limits
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.08))) 
+
+
+#box-like plot
+LMM_ferm_veg_faith_box <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FEF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.15
+  ) +
+  
   ylab("Faith's PD") +
   xlab("Period") +
   ggtitle("Fermentation Intervention – Faith's PD") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "FERM" = "#E69F00", "WO2" = "#009E73"))
 
 #save plot
 ggsave("LMM_Ferm_Veg_Faith.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
+ggsave("LMM_Ferm_Veg_Faith_box.png", plot = LMM_ferm_veg_faith_box, width = 6, height = 4, dpi = 300)
 
 
 ##Microbiome Shannon LMM
 model_shannon_microb <- lmer(Shannon ~ period + (1 | participant_id), data = meta_microb)
+
 #ANOVA and post-hoc contrasts
 anova(model_shannon_microb)
 emmeans(model_shannon_microb, pairwise ~ period)
 
-#extract the estimated marginal means from each period and convert output into a data frame for plotting
-emm_shannon_microb <- emmeans(model_shannon_microb, ~ period)
-emm_df_shannon_microb <- as.data.frame(emm_shannon_microb)
+#extract the estimated marginal means from each period and convert to data frame
+emm_df_microb_s <- emmeans(model_shannon_microb, ~ period) %>% 
+  as.data.frame()
+
+#extract pairwise contrasts
+contrasts_microb_s <- emmeans(model_shannon_microb, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+#prepare table for significance
+pval_table_MS <- contrasts_microb_s %>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".*- ", "", contrast),
+    y.position = sapply(group1, function(g) {
+      max(emm_df_microb_s$emmean[emm_df_microb_s$period == g]) + 0.3
+    }),
+    label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*"
+    )
+  ) %>%
+  filter(p.value < 0.05) 
+
 #plot
-LMM_microbiome_shannon <- ggplot(emm_df_shannon_microb, aes(x=period, y=emmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+LMM_microbiome_shannon <- ggplot(emm_df_microb_s, aes(x = period, y = emmean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
   ylab("Shannon Diversity") +
   xlab("Period") +
   ggtitle("Microbiome – Shannon") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MS,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.05
+  ) +
+  #increase y-axis limits
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1))) 
+
+
+#box-like plot
+LMM_microbiome_shannon_box <- ggplot(emm_df_microb_s, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MS,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.1
+  ) +
+  
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Microbiome – Shannon") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "WO1" = "#E69F00", "WO2" = "#009E73"))
+
 
 #save plot
-ggsave("LMM_Microbiome_Shannon.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
-
+ggsave("LMM_Microbiome_Shannon.png", plot = LMM_microbiome_shannon, width = 6, height = 4, dpi = 300)
+ggsave("LMM_Microbiome_Shannon_box.png", plot = LMM_microbiome_shannon_box, width = 6, height = 4, dpi = 300)
 
 
 ##Microbiome Faith
@@ -361,70 +596,160 @@ model_faith_microb <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta
 anova(model_faith_microb)
 emmeans(model_faith_microb, pairwise ~ period)
 
-#extract the estimated marginal means from each period and convert output into a data frame for plotting
-emm_faith_microb <- emmeans(model_faith_microb, ~ period)
-emm_df_faith_microb <- as.data.frame(emm_faith_microb)
+#extract the estimated marginal means from each period and convert to data frame
+emm_df_microb_f <- emmeans(model_faith_microb, ~ period) %>% 
+  as.data.frame()
+
+#extract pairwise contrasts
+contrasts_microb_f <- emmeans(model_faith_microb, pairwise ~ period)$contrasts %>%
+  as.data.frame()
+
+#prepare table for significance
+pval_table_MF <- contrasts_microb_f %>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".*- ", "", contrast),
+    y.position = sapply(group1, function(g) {
+      max(emm_df_microb_f$emmean[emm_df_microb_f$period == g]) + 1
+    }),
+    label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*"
+    )
+  ) %>%
+  filter(p.value < 0.05) 
 
 #plot
-LMM_microbiome_faith <- ggplot(emm_df_faith_microb, aes(x=period, y=emmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
+LMM_microbiome_faith <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
   ylab("Faith's PD") +
   xlab("Period") +
   ggtitle("Microbiome – Faith's PD") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase =  2.5
+  ) +
+  #increase y-axis limits
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1))) 
+
+
+#box-like plot
+LMM_microbiome_faith_box <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.15
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Microbiome – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "WO1" = "#E69F00", "WO2" = "#009E73"))
+
+
 
 #save plot
 ggsave("LMM_Microbiome_Faith.png", plot = LMM_microbiome_faith, width = 6, height = 4, dpi = 300)
+ggsave("LMM_Microbiome_Faith_box.png", plot = LMM_microbiome_faith_box, width = 6, height = 4, dpi = 300)
 
 
 ###combine graphs
 #add the subset info and combine
 
 #fresh
-emm_df_fresh$metric <- "Shannon"
-emm_df_fresh$subset <- "Fresh"
+emm_df_fresh_s$metric <- "Shannon"
+emm_df_fresh_s$subset <- "Fresh"
 
-emm_df_faith_fresh$metric <- "Faith_PD"
-emm_df_faith_fresh$subset <- "Fresh"
+emm_df_fresh_f$metric <- "Faith_PD"
+emm_df_fresh_f$subset <- "Fresh"
 
 #ferm
-emm_df_shannon_ferm$metric <- "Shannon"
-emm_df_shannon_ferm$subset <- "Fermented"
+emm_df_ferm_s$metric <- "Shannon"
+emm_df_ferm_s$subset <- "Fermented"
 
-emm_df_faith_ferm$metric <- "Faith_PD"
-emm_df_faith_ferm$subset <- "Fermented"
+emm_df_ferm_f$metric <- "Faith_PD"
+emm_df_ferm_f$subset <- "Fermented"
 
 #microbiome washouts
-emm_df_shannon_microb$metric <- "Shannon"
-emm_df_shannon_microb$subset <- "Microbiome Washout"
+emm_df_microb_s$metric <- "Shannon"
+emm_df_microb_s$subset <- "Microbiome_Washout"
 
-emm_df_faith_microb$metric <- "Faith_PD"
-emm_df_faith_microb$subset <- "Microbiome Washout"
+emm_df_microb_f$metric <- "Faith_PD"
+emm_df_microb_f$subset <- "Microbiome_Washout"
 
 #combine all data
 plot_data <- bind_rows(
-  emm_df_fresh, emm_df_faith_fresh,
-  emm_df_shannon_ferm, emm_df_faith_ferm,
-  emm_df_shannon_microb, emm_df_faith_microb
+  emm_df_fresh_s, emm_df_fresh_f,
+  emm_df_ferm_s, emm_df_ferm_f,
+  emm_df_microb_s, emm_df_microb_f
 )
 
-#plot all
-combined_plot <- ggplot(plot_data, aes(x=period, y=emmean, color=period)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=0.2) +
-  facet_grid(metric ~ subset, scales = "free_y") +
+plot_data
+
+#reordr and chang label names
+plot_data$metric <- factor(plot_data$metric,
+                            levels = c("Shannon", "Faith_PD"),
+                           labels = c("Shannon", "Faith's PD"))
+
+plot_data$subset <- factor(plot_data$subset,
+                           levels = c("Fresh", "Fermented", "Microbiome_Washout"),
+                           labels = c("Fresh Vegetables", "Fermented Vegetables", "Microbiome Washout"))
+
+
+combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  facet_grid(metric ~ subset, scales = "free_y",
+             labeller = labeller(metric = metric_labels)) +
+  scale_x_discrete(labels = period_labels) +
   ylab("Alpha Diversity") +
   xlab("Period") +
   theme_minimal() +
   theme(
     legend.position = "none",
-    panel.border = element_rect(colour = "black", fill=NA, size=1), # add border
-    strip.background = element_rect(fill="grey90", color="black", size=0.5) # optional: facet label background
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
   )
 
 ggsave("LMM_Alpha_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
+
+
+
+
+
+
+
+
 
 
 #### Beta Diversity ####
