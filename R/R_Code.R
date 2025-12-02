@@ -19,6 +19,8 @@ library (ggpubr)
 library(DESeq2)
 library(ggrepel)
 library(forcats)
+library(patchwork)
+
 
 
 
@@ -698,3 +700,57 @@ Top10_heatmap <- ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill =
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggsave("A1_DESeq2_Top10.png", Top10_heatmap, width = 6, height = 4, dpi = 300)
+
+
+
+
+
+##Figure 2 Plots
+#BC PCoA
+bray_PCoA_plot <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
+  geom_point(size = 4, alpha = 0.8) +
+  stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
+  scale_color_manual(values = c("VEG" = "#F8766D", "FERM" = "#619CFF")) +
+  theme_minimal() +
+  labs(
+    title = "PCoA of Bray-Curtis Distances (VEG vs FERM)",
+    x = paste0("PCoA 1 (", var_exp[1], "%)"),
+    y = paste0("PCoA 2 (", var_exp[2], "%)"),
+    color = "Period",
+    shape = "Group"
+  )+
+  theme(
+    panel.grid = element_blank(),        
+    panel.border = element_rect(      
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    ),
+    legend.position = "none"
+  )
+
+#WUF PCoA
+WUniFrac_PCoA_plot <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
+  geom_point(size = 4, alpha = 0.8) +
+  stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
+  scale_color_manual(values = c("VEG" = "#F8766D", "FERM" = "#619CFF")) +
+  theme_minimal() +
+  labs(title = "PCoA of Weighted UniFrac Distances (VEG vs FERM)",
+       x = paste0("PCoA 1 (", var_exp[1], "%)"),
+       y = paste0("PCoA 2 (", var_exp[2], "%)"),
+       color = "Period",
+       shape = "Group") +
+  theme(
+    panel.grid = element_blank(),        
+    panel.border = element_rect(      
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
+  )
+
+combined_plot <- bray_PCoA_plot + plot_spacer() + WUniFrac_PCoA_plot +
+  plot_layout(ncol = 3, widths = c(1, 0.1, 1))
+combined_plot
+
+

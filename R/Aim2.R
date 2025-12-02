@@ -898,8 +898,7 @@ plot_distance_lmm <- function(dist_df, lmm_res, title_prefix) {
       sig = case_when(
         p.value < 0.001 ~ "***",
         p.value < 0.01  ~ "**",
-        p.value < 0.05  ~ "*",
-        TRUE ~ "ns"
+        p.value < 0.05  ~ "*"
       )
     ) %>%
     # staggered y positions to avoid overlap
