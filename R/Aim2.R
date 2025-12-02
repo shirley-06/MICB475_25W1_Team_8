@@ -21,6 +21,7 @@ library(dplyr)
 library(patchwork)
 library(tidyr)
 library(tibble)
+library(patchwork)
 
 
 
@@ -744,9 +745,121 @@ combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) 
 ggsave("LMM_Alpha_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
 
 
+##Figure 3 Plots
+LMM_fresh_veg_faith_box_plot <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FRF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.1
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Fresh Intervention – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "VEG" = "#E69F00", "WO1" = "#009E73"))
 
 
 
+LMM_ferm_veg_faith_box_plot <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FEF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.15
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Fermentation Intervention – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "FERM" = "#E69F00", "WO2" = "#009E73"))
+
+
+
+
+
+LMM_microbiome_faith_box_plot <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.15
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Microbiome – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  ) +
+  scale_fill_manual(values = c("Base" = "#56B4E9", "WO1" = "#E69F00", "WO2" = "#009E73"))
+
+F3_combined_plot <- LMM_microbiome_faith_box_plot + plot_spacer() + LMM_fresh_veg_faith_box_plot + plot_spacer() + LMM_ferm_veg_faith_box_plot +
+  plot_layout(ncol = 5, widths = c(1, 0.1, 1, 0.1, 1))
+F3_combined_plot
 
 
 

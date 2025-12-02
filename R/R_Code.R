@@ -749,8 +749,11 @@ WUniFrac_PCoA_plot <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = perio
     )
   )
 
-combined_plot <- bray_PCoA_plot + plot_spacer() + WUniFrac_PCoA_plot +
+F2_combined_plot <- bray_PCoA_plot + plot_spacer() + WUniFrac_PCoA_plot +
   plot_layout(ncol = 3, widths = c(1, 0.1, 1))
-combined_plot
+F2_combined_plot
+
+ggsave("Fig2_Beta_Diversity_PCoA_Combined.png", F2_combined_plot, width = 6, height = 4, dpi = 300)
+
 
 
