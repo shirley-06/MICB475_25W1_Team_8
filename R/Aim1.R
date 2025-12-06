@@ -1,4 +1,4 @@
-#Alpha-Beta Diversity Plots
+#Aim 1 - Assess impact of fresh versus fermented vegetable consumption on gut microbial diversity and composition
 
 #!/usr/bin/env Rscript
 # NOTE: to install phyloseq, please use the following code instead of the usual "install.packages" function:
@@ -8,50 +8,49 @@ BiocManager::install("phyloseq")
 
 #load library
 library(phyloseq)
-library(ape) # importing trees
+library(ape) 
 library(tidyverse)
 library(vegan)
 library (picante)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
 library (ggpubr)
 library(DESeq2)
-library(ggrepel)
 library(forcats)
 library(patchwork)
 
-
-
-
-#### Load data ####
-# Change file paths as necessary, below we are importing them as tibble
+#### Generate Phyloseq Object ####
+##### Import Data #####
+#change file paths as necessary (import as tibble)
+#import metadata
 metafp <- "Export/fermentation_metadata.tsv"
 meta <- read_delim(metafp, delim="\t")
 
+#import OTU table
 otufp <- "Export/feature-table.txt"
 otu <- read_delim(file = otufp, delim="\t", skip=1)
 
+#import taxonomy table
 taxfp <- "Export/taxonomy.tsv"
 tax <- read_delim(taxfp, delim="\t")
 
+#import phylogenetic tree
 phylotreefp <- "Export/tree.nwk"
 phylotree <- read.tree(phylotreefp)
 
-#### Format OTU table ####
+##### Format Data #####
+###### OTU Table ###### 
 # OTU tables should be a matrix with rownames and colnames as OTUs and sampleIDs, respectively
 # Note: tibbles do not allow rownames so if you imported with read_delim, change back
 
-# save everything except first column (OTU ID) into a matrix 
-##take the otu data and index it to remove the first column
+#save everything except first column (OTU ID) into a matrix 
+#take the otu data and index it to remove the first column
 otu_mat <- as.matrix(otu[,-1])
-# Make first column (#OTU ID) the rownames of the new matrix
+#make first column (#OTU ID) the rownames of the new matrix
 rownames(otu_mat) <- otu$`#OTU ID`
-# Use the "otu_table" function to make an OTU table
+#use the "otu_table" function to make an OTU table
 OTU <- otu_table(otu_mat, taxa_are_rows = TRUE) 
 class(OTU)
 
-#### Format sample metadata ####
+###### Sample Metadata ###### 
 # Save everything except sampleid as new data frame
 samp_df <- as.data.frame(meta[,-1])
 # Make sampleids the rownames
@@ -59,6 +58,8 @@ rownames(samp_df)<- meta$'sample-id'
 # Make phyloseq sample data with sample_data() function
 SAMP <- sample_data(samp_df)
 class(SAMP)
+
+###### Taxonomy ###### 
 
 #### Formatting taxonomy ####
 # Convert taxon strings to a table with separate taxa rank columns
