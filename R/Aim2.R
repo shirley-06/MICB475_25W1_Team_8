@@ -22,6 +22,7 @@ library(patchwork)
 library(tidyr)
 library(tibble)
 library(patchwork)
+library(grid)
 
 
 
@@ -684,187 +685,6 @@ ggsave("LMM_Microbiome_Faith.png", plot = LMM_microbiome_faith, width = 6, heigh
 ggsave("LMM_Microbiome_Faith_box.png", plot = LMM_microbiome_faith_box, width = 6, height = 4, dpi = 300)
 
 
-###combine graphs
-#add the subset info and combine
-
-#fresh
-emm_df_fresh_s$metric <- "Shannon"
-emm_df_fresh_s$subset <- "Fresh"
-
-emm_df_fresh_f$metric <- "Faith_PD"
-emm_df_fresh_f$subset <- "Fresh"
-
-#ferm
-emm_df_ferm_s$metric <- "Shannon"
-emm_df_ferm_s$subset <- "Fermented"
-
-emm_df_ferm_f$metric <- "Faith_PD"
-emm_df_ferm_f$subset <- "Fermented"
-
-#microbiome washouts
-emm_df_microb_s$metric <- "Shannon"
-emm_df_microb_s$subset <- "Microbiome_Washout"
-
-emm_df_microb_f$metric <- "Faith_PD"
-emm_df_microb_f$subset <- "Microbiome_Washout"
-
-#combine all data
-plot_data <- bind_rows(
-  emm_df_fresh_s, emm_df_fresh_f,
-  emm_df_ferm_s, emm_df_ferm_f,
-  emm_df_microb_s, emm_df_microb_f
-)
-
-plot_data
-
-#reordr and chang label names
-plot_data$metric <- factor(plot_data$metric,
-                            levels = c("Shannon", "Faith_PD"),
-                           labels = c("Shannon", "Faith's PD"))
-
-plot_data$subset <- factor(plot_data$subset,
-                           levels = c("Fresh", "Fermented", "Microbiome_Washout"),
-                           labels = c("Fresh Vegetables", "Fermented Vegetables", "Microbiome Washout"))
-
-
-combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
-  facet_grid(metric ~ subset, scales = "free_y",
-             labeller = labeller(metric = metric_labels)) +
-  scale_x_discrete(labels = period_labels) +
-  ylab("Alpha Diversity") +
-  xlab("Period") +
-  theme_minimal() +
-  theme(
-    legend.position = "none",
-    panel.border = element_rect(colour = "black", fill = NA, size = 1),
-    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
-  )
-
-ggsave("LMM_Alpha_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
-
-
-##Figure 3 Plots
-LMM_fresh_veg_faith_box_plot <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
-  geom_rect(
-    aes(
-      xmin = as.numeric(period) - 0.3,
-      xmax = as.numeric(period) + 0.3,
-      ymin = lower.CL,
-      ymax = upper.CL,
-      fill = period
-    ),
-    alpha = 0.7, color = "black",
-    inherit.aes = FALSE
-  ) +
-  
-  # EMM points in the middle
-  geom_point(size = 3, color = "black") +
-  
-  # Add significance labels
-  stat_pvalue_manual(
-    pval_table_FRF,
-    label = "label",
-    tip.length = 0.03,
-    step.increase = 0.1
-  ) +
-  
-  ylab("Faith's PD") +
-  xlab("Period") +
-  ggtitle("Fresh Intervention – Faith's PD") +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    legend.position = "right"
-  ) +
-  scale_fill_manual(values = c("Base" = "#56B4E9", "VEG" = "#E69F00", "WO1" = "#009E73"))
-
-
-
-LMM_ferm_veg_faith_box_plot <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
-  geom_rect(
-    aes(
-      xmin = as.numeric(period) - 0.3,
-      xmax = as.numeric(period) + 0.3,
-      ymin = lower.CL,
-      ymax = upper.CL,
-      fill = period
-    ),
-    alpha = 0.7, color = "black",
-    inherit.aes = FALSE
-  ) +
-  
-  # EMM points in the middle
-  geom_point(size = 3, color = "black") +
-  
-  # Add significance labels
-  stat_pvalue_manual(
-    pval_table_FEF,
-    label = "label",
-    tip.length = 0.03,
-    step.increase = -0.15
-  ) +
-  
-  ylab("Faith's PD") +
-  xlab("Period") +
-  ggtitle("Fermentation Intervention – Faith's PD") +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    legend.position = "right"
-  ) +
-  scale_fill_manual(values = c("Base" = "#56B4E9", "FERM" = "#E69F00", "WO2" = "#009E73"))
-
-
-
-
-
-LMM_microbiome_faith_box_plot <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
-  geom_rect(
-    aes(
-      xmin = as.numeric(period) - 0.3,
-      xmax = as.numeric(period) + 0.3,
-      ymin = lower.CL,
-      ymax = upper.CL,
-      fill = period
-    ),
-    alpha = 0.7, color = "black",
-    inherit.aes = FALSE
-  ) +
-  
-  # EMM points in the middle
-  geom_point(size = 3, color = "black") +
-  
-  # Add significance labels
-  stat_pvalue_manual(
-    pval_table_MF,
-    label = "label",
-    tip.length = 0.03,
-    step.increase = -0.15
-  ) +
-  
-  ylab("Faith's PD") +
-  xlab("Period") +
-  ggtitle("Microbiome – Faith's PD") +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    legend.position = "right"
-  ) +
-  scale_fill_manual(values = c("Base" = "#56B4E9", "WO1" = "#E69F00", "WO2" = "#009E73"))
-
-F3_combined_plot <- LMM_microbiome_faith_box_plot + plot_spacer() + LMM_fresh_veg_faith_box_plot + plot_spacer() + LMM_ferm_veg_faith_box_plot +
-  plot_layout(ncol = 5, widths = c(1, 0.1, 1, 0.1, 1))
-F3_combined_plot
-
-
-
-
-
 #### Beta Diversity ####
 #prepare metadata
 meta_fresh_df <- as.data.frame(sample_data(ps_fresh))
@@ -1450,3 +1270,385 @@ deseq_microb_facet <- plot_emm_facets_safe(emm_microb_named, title = "Top 10 Sig
 ggsave("DESeq2_Fresh_facet_safe.png", plot = deseq_fresh_facet, width = 8, height = 6, dpi = 300)
 ggsave("DESeq2_Ferm_facet_safe.png", plot = deseq_ferm_facet, width = 8, height = 6, dpi = 300)
 ggsave("DESeq2_Microb_facet_safe.png", plot = deseq_microb_facet, width = 8, height = 6, dpi = 300)
+
+
+
+
+
+###combine graphs
+#add the subset info and combine
+
+#fresh
+emm_df_fresh_s$metric <- "Shannon"
+emm_df_fresh_s$subset <- "Fresh"
+
+emm_df_fresh_f$metric <- "Faith_PD"
+emm_df_fresh_f$subset <- "Fresh"
+
+#ferm
+emm_df_ferm_s$metric <- "Shannon"
+emm_df_ferm_s$subset <- "Fermented"
+
+emm_df_ferm_f$metric <- "Faith_PD"
+emm_df_ferm_f$subset <- "Fermented"
+
+#microbiome washouts
+emm_df_microb_s$metric <- "Shannon"
+emm_df_microb_s$subset <- "Microbiome_Washout"
+
+emm_df_microb_f$metric <- "Faith_PD"
+emm_df_microb_f$subset <- "Microbiome_Washout"
+
+#combine all data
+plot_data <- bind_rows(
+  emm_df_fresh_s, emm_df_fresh_f,
+  emm_df_ferm_s, emm_df_ferm_f,
+  emm_df_microb_s, emm_df_microb_f
+)
+
+plot_data
+
+#reorder and change label names
+period_labels <- c(
+  "Base" = "Base",
+  "VEG"  = "VEG",
+  "FERM" = "FERM",
+  "WO1"  = "WO1",
+  "WO2"  = "WO2"
+)
+
+metric_labels <- c(
+  "Shannon" = "Shannon",
+  "Faith's PD" = "Faith's PD"
+)
+
+combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  facet_grid(metric ~ subset, scales = "free_y",
+             labeller = labeller(metric = metric_labels)) +
+  scale_x_discrete(labels = period_labels) +
+  ylab("Alpha Diversity") +
+  xlab("Period") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
+  )
+
+
+ggsave("LMM_Alpha_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
+
+
+
+
+#### Figure Plots ####
+##Legend 
+#create a legend (couldn't extract all periods color as one legend)
+period_colors <- c(
+  "Base" = "#4E79A7",
+  "VEG" = "#B699C6",
+  "WO1" = "#F28E2B",
+  "FERM" = "#59A14F",
+  "WO2" = "#E15759")
+
+#create a data frame to generate a legend, y is arbitary here because we are only interested in the legend
+legend_data <- data.frame(
+  period = factor(names(period_colors), levels = c("Base", "VEG", "WO1", "FERM", "WO2")),
+  y = 1
+)
+
+#generate a ggplot object solely to create the legend
+legend_plot <- ggplot(legend_data, aes(x = period, y = y, fill = period)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = period_colors, name = "Period") +  # colors remain the same
+  theme_void() +
+  theme(legend.position = "right")  
+#extract the legend from the ggplot object
+shared_legend <- get_legend(legend_plot)
+#wrapextracted legend so it can be treated as a patchwork element
+legend_wrap <- wrap_elements(full = shared_legend)
+
+#save legend
+ggsave("Figure_3_LMM_Alpha_Faith_combined_legend.png", plot = legend_wrap, width = 6, height = 4, dpi = 300)
+
+
+
+##LMM alpha diversity (only Faith's PD)
+  "Base" = "#4E79A7",
+  "VEG" = "#B699C6",
+  "WO1" = "#F28E2B",
+  "FERM" = "#59A14F",
+  "WO2" = "#E15759")
+
+
+LMM_fresh_veg_faith_box_plot <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FRF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.1
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Fresh Intervention – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  scale_fill_manual(values = c("Base" = "#4E79A7", "VEG" = "#B699C6", "WO1" = "#F28E2B"))
+
+
+
+LMM_ferm_veg_faith_box_plot <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FEF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.15
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Fermentation Intervention – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )  +
+  scale_fill_manual(values = c("Base" = "#4E79A7", "FERM" = "#59A14F", "WO2" = "#E15759"))
+
+
+LMM_microbiome_faith_box_plot <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MF,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.15
+  ) +
+  
+  ylab("Faith's PD") +
+  xlab("Period") +
+  ggtitle("Microbiome – Faith's PD") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )  +
+  scale_fill_manual(values = c("Base" = "#4E79A7", "WO1" = "#F28E2B", "WO2" = "#E15759"))
+
+#plot all three Faith LMM 
+F3_combined_plot <- LMM_microbiome_faith_box_plot + plot_spacer() + LMM_fresh_veg_faith_box_plot + plot_spacer() + LMM_ferm_veg_faith_box_plot +
+  plot_layout(ncol = 5, widths = c(1, 0.1, 1, 0.1, 1))
+F3_combined_plot
+
+#save plot
+ggsave("Figure_3_LMM_Alpha_Faith_combined.png", plot = F3_combined_plot, width = 6, height = 4, dpi = 300)
+
+##LMM alpha diversity (Shannon for S1)
+
+LMM_fresh_veg_shannon_box_plot <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  #EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  #add significance labels
+  stat_pvalue_manual(
+    pval_table_FRS,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = 0.1
+  ) +
+  
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Fresh Intervention – Shannon") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  scale_fill_manual(values = c("Base" = "#4E79A7", "VEG" = "#B699C6", "WO1" = "#F28E2B"))
+
+LMM_ferm_veg_shannon_box_plot <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_FES,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = .5
+  ) +
+  
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Fermentation Intervention – Shannon") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  scale_fill_manual(values = c("Base" = "#4E79A7", "FERM" = "#59A14F", "WO2" = "#E15759"))
+
+
+
+LMM_microbiome_shannon_box_plot <- ggplot(emm_df_microb_s, aes(x = period, y = emmean)) +
+  # box-like rectangles for CI, filled by period
+  geom_rect(
+    aes(
+      xmin = as.numeric(period) - 0.3,
+      xmax = as.numeric(period) + 0.3,
+      ymin = lower.CL,
+      ymax = upper.CL,
+      fill = period
+    ),
+    alpha = 0.7, color = "black",
+    inherit.aes = FALSE
+  ) +
+  
+  # EMM points in the middle
+  geom_point(size = 3, color = "black") +
+  
+  # Add significance labels
+  stat_pvalue_manual(
+    pval_table_MS,
+    label = "label",
+    tip.length = 0.03,
+    step.increase = -0.1
+  ) +
+  
+  ylab("Shannon Diversity") +
+  xlab("Period") +
+  ggtitle("Microbiome – Shannon") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  scale_fill_manual(values = c("Base" = "#4E79A7", "WO1" = "#F28E2B", "WO2" = "#E15759"))
+
+S1_LMM_Shannon_combined_plot <- LMM_microbiome_shannon_box_plot + 
+  plot_spacer() + 
+  LMM_fresh_veg_shannon_box_plot + 
+  plot_spacer() + 
+  LMM_ferm_veg_shannon_box_plot+
+  plot_layout(ncol = 5, widths = c(1, 0.1, 1, 0.1, 1))
+S1_LMM_Shannon_combined_plot
+
+#save plot
+ggsave("Sup_Figure_1_LMM_Alpha_Shannon_combined.png", plot = S1_LMM_Shannon_combined_plot, width = 6, height = 4, dpi = 300)
+
+
+##LMM beta diversity (only Bray-Curtis)
+# Combine plots
+beta_combined_BC <- (beta_fresh_BC) /
+  (beta_ferm_BC)  /
+  (beta_microbiome_BC) + 
+  plot_annotation(title = "Bray-Curtis Beta Diversity LMM Analysis")
+
+# Save
+ggsave("Beta_BrayCurtis_Combined.png", plot = beta_combined_BC, width = 6, height = 12, dpi = 300)
+
+
+beta_combined_BC <- (beta_fresh_BC) /
+  (beta_ferm_BC)  /
+  (beta_microbiome_BC) + 
+  plot_annotation(title = "Bray-Curtis Beta Diversity LMM Analysis")
+
+# Save the combined figure
+ggsave("Beta_Diversity_Combined.png", plot = beta_combined, width = 12, height = 12, dpi = 300)
+
+
