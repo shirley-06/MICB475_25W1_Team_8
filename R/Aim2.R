@@ -1,3 +1,5 @@
+#Aim 2 - Longitudinal evaluation of diet-induced gut microbiome alterations and their implications for gut health
+
 #install lme4 packages (for Shirley's older R version)
 install.packages("lme4", type = "source")
 install.packages("lmerTest")
@@ -25,10 +27,9 @@ library(patchwork)
 library(grid)
 
 
-
+#### Load Data ####
 #load filtered and rarefied data
 load("ferm_rare.RData")
-
 
 #check object loaded
 ls()
@@ -37,7 +38,8 @@ sample_data(ferm_rarefac) %>% head()
 
 
 
-#### Alpha Diversity ####
+#### Alpha Diversity Linear Mixed Model (LMM) ####
+##### Prepare Dataset #####
 #prune zero-sum taxa and samples in the full dataset
 ferm_rarefac <- prune_taxa(taxa_sums(ferm_rarefac) > 0, ferm_rarefac)
 ferm_rarefac <- prune_samples(sample_sums(ferm_rarefac) > 0, ferm_rarefac)
@@ -126,9 +128,9 @@ sum(is.na(meta_microb$Faith_PD))
 sum(is.na(meta_microb$period))
 sum(is.na(meta_microb$participant_id))
 
-##### Linear Mixed Model (LMM) #####
-
-##fresh shannon LMM (period as the fixed effects and participant_id as the random effect)
+##### Fresh LMM #####
+###### Shannon  ######
+#fresh shannon LMM (period as the fixed effects and participant_id as the random effect)
 model_shannon_fresh <- lmer(Shannon ~ period + (1 | participant_id), data = meta_fresh)
 
 #perform ANOVA to test and post-hoc test
@@ -168,7 +170,7 @@ LMM_fresh_veg_shannon <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
   ggtitle("Fresh Intervention – Shannon") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_FRS,
     label = "label",
@@ -181,7 +183,7 @@ LMM_fresh_veg_shannon <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
 
 #box-like plot
 LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -215,13 +217,13 @@ LMM_fresh_veg_shannon_box <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean))
   ) +
   scale_fill_manual(values = c("Base" = "#56B4E9", "VEG" = "#E69F00", "WO1" = "#009E73"))
 
-
 #save
-ggsave("LMM_Fresh_Veg_Faith.png", plot = LMM_fresh_veg_shannon, width = 6, height = 4, dpi = 300)
-ggsave("LMM_Fresh_Veg_Faith_box.png", plot = LMM_fresh_veg_shannon_box, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_Shannon_Fresh.png", plot = LMM_fresh_veg_shannon, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_Shannon_Fresh_box.png", plot = LMM_fresh_veg_shannon_box, width = 6, height = 4, dpi = 300)
 
 
-##Fresh Faith LMM
+###### Faith's PD  ######
+#fresh Faith LMM
 model_faith_fresh <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_fresh)
 
 #ANOVA and post-hoc contrasts
@@ -310,11 +312,13 @@ LMM_fresh_veg_faith_box <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
 
 
 #save plot
-ggsave("LMM_Fresh_Veg_Faith.png", plot = LMM_fresh_veg_faith, width = 6, height = 4, dpi = 300)
-ggsave("LMM_Fresh_Veg_Faith_box.png", plot = LMM_fresh_veg_faith_box, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_FaithPD_Fresh.png", plot = LMM_fresh_veg_faith, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_FaithPD_Fresh_box.png", plot = LMM_fresh_veg_faith_box, width = 6, height = 4, dpi = 300)
 
+##### Fermentation LMM  #####
+###### Shannon ######
 
-##Ferm Shannon LMM
+#ferm Shannon LMM
 model_shannon_ferm <- lmer(Shannon ~ period + (1 | participant_id), data = meta_ferm)
 
 #ANOVA and post-hoc contrasts
@@ -367,7 +371,7 @@ LMM_ferm_veg_shannon <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
 
 #box-like plot
 LMM_ferm_veg_shannon_box <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -380,10 +384,10 @@ LMM_ferm_veg_shannon_box <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_FES,
     label = "label",
@@ -402,13 +406,12 @@ LMM_ferm_veg_shannon_box <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
   scale_fill_manual(values = c("Base" = "#56B4E9", "FERM" = "#E69F00", "WO2" = "#009E73"))
 
 #save plot
-ggsave("LMM_Ferm_Veg_Shannon.png", plot = LMM_ferm_veg_shannon, width = 6, height = 4, dpi = 300)
-ggsave("LMM_Ferm_Veg_Shannon_box.png", plot = LMM_ferm_veg_shannon_box, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_Shannon_Ferm.png", plot = LMM_ferm_veg_shannon, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_Shannon_Ferm_box.png", plot = LMM_ferm_veg_shannon_box, width = 6, height = 4, dpi = 300)
 
 
-
-
-##Ferm Faith LMM
+###### Faith's PD ######
+#ferm Faith LMM
 model_faith_ferm <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_ferm)
 #ANOVA and post-hoc contrasts
 anova(model_faith_ferm)
@@ -460,7 +463,7 @@ LMM_ferm_veg_faith <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
 
 #box-like plot
 LMM_ferm_veg_faith_box <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -473,10 +476,10 @@ LMM_ferm_veg_faith_box <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_FEF,
     label = "label",
@@ -495,11 +498,12 @@ LMM_ferm_veg_faith_box <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
   scale_fill_manual(values = c("Base" = "#56B4E9", "FERM" = "#E69F00", "WO2" = "#009E73"))
 
 #save plot
-ggsave("LMM_Ferm_Veg_Faith.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
-ggsave("LMM_Ferm_Veg_Faith_box.png", plot = LMM_ferm_veg_faith_box, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_FaithPD_Ferm.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_FaithPD_Ferm_box.png", plot = LMM_ferm_veg_faith_box, width = 6, height = 4, dpi = 300)
 
-
-##Microbiome Shannon LMM
+##### Microbiome LMM #####
+###### Shannon ######
+#microbiome Shannon LMM
 model_shannon_microb <- lmer(Shannon ~ period + (1 | participant_id), data = meta_microb)
 
 #ANOVA and post-hoc contrasts
@@ -552,7 +556,7 @@ LMM_microbiome_shannon <- ggplot(emm_df_microb_s, aes(x = period, y = emmean)) +
 
 #box-like plot
 LMM_microbiome_shannon_box <- ggplot(emm_df_microb_s, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -565,10 +569,10 @@ LMM_microbiome_shannon_box <- ggplot(emm_df_microb_s, aes(x = period, y = emmean
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_MS,
     label = "label",
@@ -588,11 +592,12 @@ LMM_microbiome_shannon_box <- ggplot(emm_df_microb_s, aes(x = period, y = emmean
 
 
 #save plot
-ggsave("LMM_Microbiome_Shannon.png", plot = LMM_microbiome_shannon, width = 6, height = 4, dpi = 300)
-ggsave("LMM_Microbiome_Shannon_box.png", plot = LMM_microbiome_shannon_box, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_Shannon_Microbiome.png", plot = LMM_microbiome_shannon, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_Shannon_Microbiome_box.png", plot = LMM_microbiome_shannon_box, width = 6, height = 4, dpi = 300)
 
 
-##Microbiome Faith
+###### Faith's PD ######
+##microbiome Faith LMM
 model_faith_microb <- lmer(Faith_PD ~ period + (1 | participant_id), data = meta_microb)
 #ANOVA and post-hoc contrasts
 anova(model_faith_microb)
@@ -644,7 +649,7 @@ LMM_microbiome_faith <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
 
 #box-like plot
 LMM_microbiome_faith_box <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -657,10 +662,10 @@ LMM_microbiome_faith_box <- ggplot(emm_df_microb_f, aes(x = period, y = emmean))
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_MF,
     label = "label",
@@ -679,13 +684,13 @@ LMM_microbiome_faith_box <- ggplot(emm_df_microb_f, aes(x = period, y = emmean))
   scale_fill_manual(values = c("Base" = "#56B4E9", "WO1" = "#E69F00", "WO2" = "#009E73"))
 
 
-
 #save plot
-ggsave("LMM_Microbiome_Faith.png", plot = LMM_microbiome_faith, width = 6, height = 4, dpi = 300)
-ggsave("LMM_Microbiome_Faith_box.png", plot = LMM_microbiome_faith_box, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_FaithPD_Microbiome.png", plot = LMM_microbiome_faith, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Alpha_FaithPD_Microbiome_box.png", plot = LMM_microbiome_faith_box, width = 6, height = 4, dpi = 300)
 
 
-#### Beta Diversity ####
+#### Beta Diversity Linear Mixed Model (LMM) ####
+##### Prepare Dataset #####
 #prepare metadata
 meta_fresh_df <- as.data.frame(sample_data(ps_fresh))
 meta_fresh_df$SampleID <- rownames(meta_fresh_df)
@@ -696,7 +701,7 @@ meta_ferm_df$SampleID <- rownames(meta_ferm_df)
 meta_microb_df <- as.data.frame(sample_data(ps_microb))
 meta_microb_df$SampleID <- rownames(meta_microb_df)
 
-
+##### Calculate Bray-Curtis and Weighted UniFrac Metrics #####
 #beta diversity matrices calculations (bray and weighted unifrac)
 #fresh
 beta_bc_fresh <- phyloseq::distance(ps_fresh, method = "bray")
@@ -710,7 +715,7 @@ beta_wu_ferm <- phyloseq::distance(ps_ferm, method = "wunifrac")
 beta_bc_microb <- phyloseq::distance(ps_microb, method = "bray")
 beta_wu_microb <- phyloseq::distance(ps_microb, method = "wunifrac")
 
-
+##### Calculate Distance-to-baseline #####
 #distance-to-baseline calculation function
 distance_to_baseline <- function(dist_matrix, meta) {
   # Ensure metadata has SampleID
@@ -748,7 +753,6 @@ distance_to_baseline <- function(dist_matrix, meta) {
 }
 
 
-
 # Convert dist object to matrix first
 beta_bc_fresh_mat <- as.matrix(beta_bc_fresh)
 beta_wu_fresh_mat <- as.matrix(beta_wu_fresh)
@@ -770,8 +774,7 @@ dist_wu_ferm <- distance_to_baseline(beta_wu_ferm_mat, meta_ferm_df)
 dist_bc_microb <- distance_to_baseline(beta_bc_microb_mat, meta_microb_df)
 dist_wu_microb <- distance_to_baseline(beta_wu_microb_mat, meta_microb_df)
 
-
-#Linear Mixed Models (Distance-to-Baseline)
+##### LMM on Distance-to-baseline #####
 #function fits LMM (period as fixed effect and participant_id as random effects) and returns ANOVA and post-hoc contract
 run_lmm <- function(dist_df, response_label = "Distance") {
   # Ensure factors
@@ -819,11 +822,10 @@ str(dist_bc_fresh)
 table(dist_bc_fresh$period)
 table(dist_bc_fresh$participant_id)
 
-#Plots for beta diversity 
-# Function to create combined line + boxplot figure
+##### Plots #####
+#function to create combined line + boxplot figure
 plot_distance_lmm <- function(dist_df, lmm_res, title_prefix) {
-  
-  # Extract post-hoc contrasts for significance
+  #extract post-hoc contrasts for significance
   contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
     mutate(
       group1 = gsub(" -.*","",contrast),
@@ -834,13 +836,13 @@ plot_distance_lmm <- function(dist_df, lmm_res, title_prefix) {
         p.value < 0.05  ~ "*"
       )
     ) %>%
-    # staggered y positions to avoid overlap
+    #stagger y positions to avoid overlap
     mutate(
       y.position = max(dist_df$distance) + seq(0.05, 0.05*nrow(.), by = 0.05)*max(dist_df$distance)
     ) %>%
     dplyr::select(group1, group2, sig, y.position)
   
-  # Line/trajectory plot
+  #line/trajectory plot
   line_plot <- ggplot(dist_df, aes(x = period, y = distance, group = participant_id)) +
     geom_line(alpha = 0.3, color = "grey") +
     stat_summary(aes(group=1), fun = mean, geom = "line", color = "blue", size = 1.2) +
@@ -868,25 +870,25 @@ plot_distance_lmm <- function(dist_df, lmm_res, title_prefix) {
 #generate plots for all datasets
 #fresh
 beta_fresh_BC <- plot_distance_lmm(dist_bc_fresh, lmm_bc_fresh, "Fresh Bray-Curtis")
-ggsave("D2B_Fresh_Bray-Curtis.png", plot = beta_fresh_BC, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_BC_Fresh.png", plot = beta_fresh_BC, width = 6, height = 4, dpi = 300)
 
 beta_fresh_WUF <- plot_distance_lmm(dist_wu_fresh, lmm_wu_fresh, "Fresh Weighted UniFrac")
-ggsave("D2B_Fresh_WeightedUF.png", plot = beta_fresh_WUF, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_WUF_Fresh.png", plot = beta_fresh_WUF, width = 6, height = 4, dpi = 300)
 
 #fermented
 beta_ferm_BC <- plot_distance_lmm(dist_bc_ferm, lmm_bc_ferm, "Fermented Bray-Curtis")
-ggsave("D2B_Ferm_Bray-Curtis.png", plot = beta_ferm_BC, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_BC_Ferm.png", plot = beta_ferm_BC, width = 6, height = 4, dpi = 300)
 
 beta_ferm_WUF <- plot_distance_lmm(dist_wu_ferm, lmm_wu_ferm, "Fermented Weighted UniFrac")
-ggsave("D2B_Ferm_WeightedUF.png", plot = beta_ferm_WUF, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_WUF_Ferm.png", plot = beta_ferm_WUF, width = 6, height = 4, dpi = 300)
 
 
 #microbiome washout
 beta_microbiome_BC <- plot_distance_lmm(dist_bc_microb, lmm_bc_microb, "Washout Bray-Curtis")
-ggsave("D2B_microbiome_Bray-Curtis.png", plot = beta_microbiome_BC, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_BC_Microbiome.png", plot = beta_microbiome_BC, width = 6, height = 4, dpi = 300)
 
 beta_microbiome_WUF <- plot_distance_lmm(dist_wu_microb, lmm_wu_microb, "Washout Weighted UniFrac")
-ggsave("D2B_microbiome_WeightedUF.png", plot = beta_microbiome_WUF, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_WUF_Microbiome.png", plot = beta_microbiome_WUF, width = 6, height = 4, dpi = 300)
 
 
 
