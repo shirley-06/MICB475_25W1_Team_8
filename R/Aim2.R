@@ -1230,15 +1230,29 @@ ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 
 
 
 
-#test
-#save as CSV
+#test CSV file
+#add Subset column to each dataset
 emm_fresh_named <- emm_fresh_named %>% mutate(Subset = "Fresh")
 emm_ferm_named <- emm_ferm_named %>% mutate(Subset = "Fermented")
 emm_microb_named <- emm_microb_named %>% mutate(Subset = "Microbiome")
 
+#combine all datasets into one
 all_top_taxa_points <- bind_rows(emm_fresh_named, emm_ferm_named, emm_microb_named)
 
+#save combined dataset
 write.csv(all_top_taxa_points, "Top10_Taxa_All_Subsets_Points.csv", row.names = FALSE)
+
+#calculate change and direction for plotting (wide format)
+taxa_change <- all_top_taxa_points %>%
+  pivot_wider(names_from = period, values_from = emmean) %>%
+  mutate(change = VEG - Base,
+         direction = ifelse(change > 0, "increase", "decrease"))
+
+#save change table
+write.csv(taxa_change, "Taxa_Change.csv", row.names = FALSE)
+
+
+
 
 
 ###combine graphs
