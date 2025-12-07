@@ -60,34 +60,31 @@ SAMP <- sample_data(samp_df)
 class(SAMP)
 
 ###### Taxonomy ###### 
-
-#### Formatting taxonomy ####
-# Convert taxon strings to a table with separate taxa rank columns
+#convert taxon strings to a table with separate taxa rank columns
 tax_mat <- tax %>% select(-Confidence)%>%
   separate(col=Taxon, sep="; "
            , into = c("Domain","Phylum","Class","Order","Family","Genus","Species")) %>%
   as.matrix() # Saving as a matrix
-# Save everything except feature IDs 
+#save everything except feature IDs 
 tax_mat <- tax_mat[,-1]
-# Make sampleids the rownames
+#make sampleids the rownames
 rownames(tax_mat) <- tax$`Feature ID`
-# Make taxa table
+#make taxa table
 TAX <- tax_table(tax_mat)
 class(TAX)
 
-#### Create phyloseq object ####
-# Merge all into a phyloseq object
+##### Create phyloseq Object #####
+#merge all objects into a phyloseq object
 fermentation_ps_raw <- phyloseq(OTU, SAMP, TAX, phylotree)
 
-# View components of phyloseq object with the following commands
+#view components of phyloseq object with the following commands
 otu_table(fermentation_ps_raw)
 sample_data(fermentation_ps_raw)
 tax_table(fermentation_ps_raw)
 phy_tree(fermentation_ps_raw)
 
-
-#### Filter phyloseq object ####
-# Remove unwanted taxa: mitochondria, chloroplasts, Eukaryota, and Archaea
+##### Filter phyloseq Object #####
+#remove unwanted taxa: mitochondria, chloroplasts, Eukaryota, and Archaea
 ps_taxa_filter <- subset_taxa(
   fermentation_ps_raw, 
   !Order %in% c("o__Chloroplast") &   # remove chloroplasts
@@ -96,12 +93,12 @@ ps_taxa_filter <- subset_taxa(
 )
 
 
-#subset to only female samples and remove NA samples in Group samples
+#subset to only 'female' samples from host_sex category and remove 'NA' samples in Group category
 ps_metadata_filter <- subset_samples (ps_taxa_filter, 
                              host_sex == "female" &
                             Group != "not applicable")
 
-#Create a new column to group 'Control' and 'Antibiotics' group as one group
+#create a new column and group 'Control' and 'Antibiotics' group as one group
 sample_data(ps_metadata_filter)$Group_new <- ifelse(
   sample_data(ps_metadata_filter)$Group %in% c("Control", "Antibiotics"),
   "CTRL_AB",
@@ -109,24 +106,6 @@ sample_data(ps_metadata_filter)$Group_new <- ifelse(
 )
 
 ps_filter <- ps_metadata_filter
-
-
-#feature-based filtering
-#ps_abund_filter <- filter_taxa(
-#  ps_filter,
-#  function(x) sum(x) > (0.00005 * sum(sample_sums(ps_filter))),
-#  prune = TRUE
-#)
-
-#number of taxa removed after feature-based filtering
-#ntaxa(ps_filter) - ntaxa(ps_abund_filter)
-
-#number of reads removed after feature-based filtering
-#sum(otu_table(ps_filter)) - sum(otu_table(ps_abund_filter))
-
-#number of taxa remaining
-#ntaxa(ps_abund_filter)
-#not using feature-based filtering, it removed a lot of samples
 
 
 #view data set after filtering
@@ -151,33 +130,29 @@ ntaxa(ps_filter)
 #% of ASVs kept --> ~99.3% were kept after filtering
 ntaxa (ps_filter) / ntaxa(fermentation_ps_raw) 
 
-
-
-#look at the top 5 OTUs before and after filtering
-# Define a helper function to get top 5 OTUs from any phyloseq object
+#make helper function to look at the top 5 OTUs from any phyloseq object before and after filtering
 get_top_otus <- function(ps_obj, n = 5) {
   otu_df <- as.data.frame(as.table(as.matrix(otu_table(ps_obj))))
   colnames(otu_df) <- c("OTU", "Sample", "Count")
   otu_df[order(-otu_df$Count), ][1:n, ]
 }
 
-# Use it before and after filtering
+#look at top 5 OTUs before and after filtering
 top5_raw <- get_top_otus(fermentation_ps_raw)
 top5_filtered <- get_top_otus(ps_filter)
 
-# Print results
+#print results
 top5_raw
 top5_filtered
 
 
-
 #### Rarefaction ####
-##Summarize sequencing depth per group
-# Convert sample_data to a data frame and add total reads per sample
+#summarize sequencing depth per group
+#convert sample_data to a data frame and add total reads per sample
 sample_df <- as.data.frame(sample_data(ps_filter))
 sample_df$TotalReads <- sample_sums(ps_filter)
 
-# Summarize min and max sequencing depth per Group_new to determine rarefaction depth
+#summarize min and max sequencing depth per Group_new to determine rarefaction depth
 sample_df %>%
   group_by(Group_new) %>%
   summarise(
@@ -192,9 +167,7 @@ sample_df %>%
 ps_clean <- prune_taxa(taxa_sums(ps_filter) > 0, ps_filter)
 ps_clean <- prune_samples(sample_sums(ps_clean) > 0, ps_clean)
 
-
-# Rarefaction
-# set rngseed the same number each time to reproduce this exact analysis
+#set rngseed the same number each time to reproduce this exact analysis
 ferm_rarefac <- rarefy_even_depth(ps_clean,
                                rngseed = 1,
                                sample.size = 31218,
@@ -202,40 +175,43 @@ ferm_rarefac <- rarefy_even_depth(ps_clean,
                                trimOTUs = TRUE,
                                verbose = TRUE)
 
-
-#check rarefied object
-# Check total reads per sample — all should equal 31218
+#check total reads per sample — all should equal 31218
 table(sample_sums(ferm_rarefac))
 
-# Check how many OTUs remain
+#check for how many OTUs remain
 ntaxa(ps_filter) #after filtering
 ntaxa(ps_clean) #after cleaning (before rarefaction)
 ntaxa(ferm_rarefac) #after rarefaction
 
-# Check how many samples remain
+#check how many samples remain
 nsamples(ps_filter) #after filtering
 nsamples(ps_clean) #after cleaning (before rarefaction)
 nsamples(ferm_rarefac) #after rarefaction
 
-# Confirm your grouping variable is still intact
+#confirm your grouping variable is still intact
 table(sample_data(ferm_rarefac)$Group_new)
 
 
-##### Saving #####
+##### Save Raw and Rarefaction files #####
 save(ps_filter, file="ferm_final.RData")
 save(ferm_rarefac, file="ferm_rare.RData")
 
 
 #### Alpha Diversity ####
+##### Shannon and Faith's PD Calculations #####
 #Shannon
+#compute Shannon
 alpha_shannon <- estimate_richness(ferm_rarefac, measures = "Shannon")
 
 #Faith's PD
+#extract OTU table from phyloseq object and convert to matrix
+#if taxa are stored as rows in the phyloseq object, transpose the matrix
 otu_mat <- as(otu_table(ferm_rarefac), "matrix")
 if (taxa_are_rows(ferm_rarefac)) {
   otu_mat <- t(otu_mat)
 }
 
+#compute Faith's PD
 alpha_faith_pd <- pd(otu_mat, phy_tree(ferm_rarefac), include.root = TRUE)
 
 
@@ -247,39 +223,38 @@ sd$Faith_PD <- alpha_faith_pd$PD[match(rownames(sd), rownames(alpha_faith_pd))]
 #convert sample_data back into the phyloseq object
 sample_data(ferm_rarefac) <- sample_data(sd)
 
-# Verify
+#verify
 head(sample_data(ferm_rarefac))
 sample_variables(ferm_rarefac)
 
-
-#Alpha Diversity Plots
-# extract and convert the sample data from phyloseq to a true data.frame
+##### Shannon and Faith's PD Plots #####
+#extract and convert the sample data from phyloseq to a true data.frame
 sd_df <- data.frame(sample_data(ferm_rarefac), check.names = TRUE, stringsAsFactors = FALSE)
 # Check class
 class(sd_df)
 
-#Alpha plots for FRESH vegetables
-# Filter only the groups and periods you care about
+###### FRESH ######
+#filter for groups and periods for the intervention period
 sd_plot_veg <- sd_df %>%
   filter(Group_new %in% c("Constipation", "CTRL_AB") &
            period %in% c("Base", "VEG")) %>%
   select(Subject = participant_id, Group_new, period, Shannon, Faith_PD)
 
-# Make period a factor for plotting
+#make period a factor for plotting
 sd_plot_veg$period <- factor(sd_plot_veg$period,
                          levels = c("Base", "VEG"),
                          labels = c("Base", "Veg"))
-# Recode Group_new and reorder group
+#rename groups in 'Group_new' and reorder group
 sd_plot_veg$Group_new <- recode(sd_plot_veg$Group_new,
                             "CTRL_AB" = "Healthy",
                             "Constipation" = "Constipation")
 sd_plot_veg$Group_new <- factor(sd_plot_veg$Group_new, levels = c("Healthy", "Constipation"))
 
-# Preview
+#preview
 head(sd_plot_veg)
 
 
-# Boxplot of Shannon diversity with Wilcox test annotations
+#boxplot of Shannon diversity with Wilcox test annotations
 Veg_Shannon <- ggplot(sd_plot_veg, aes(x = period, y = Shannon, fill = period)) +
   geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
   facet_wrap(~Group_new) +
@@ -302,7 +277,7 @@ Veg_Shannon <- ggplot(sd_plot_veg, aes(x = period, y = Shannon, fill = period)) 
   )
 
 
-# Boxplot of Faith's PD with Wilcoxon test annotations
+#boxplot of Faith's PD with Wilcoxon test annotations
 Veg_FaithPD <- ggplot(sd_plot_veg, aes(x = period, y = Faith_PD, fill = period)) +
   geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
   facet_wrap(~Group_new) +
@@ -326,28 +301,28 @@ Veg_FaithPD <- ggplot(sd_plot_veg, aes(x = period, y = Faith_PD, fill = period))
 
 
 #saving
-ggsave("Fresh_Veg_Shannon.png", plot = Veg_Shannon, width = 6, height = 4, dpi = 300)
-ggsave("Fresh_Veg_FaithPD.png", plot = Veg_FaithPD, width = 6, height = 4, dpi = 300)
+ggsave("A1_Alpha_Shannon_Fresh.png", plot = Veg_Shannon, width = 6, height = 4, dpi = 300)
+ggsave("A1_Alpha_FaithPD_Fresh.png", plot = Veg_FaithPD, width = 6, height = 4, dpi = 300)
 
 
-#Alpha plots for FERM vegetables
-# Filter only the groups and periods you care about
+###### FERM ######
+#filter for groups and periods for the intervention period
 sd_plot_ferm <- sd_df %>%
   filter(Group_new %in% c("Constipation", "CTRL_AB") &
            period %in% c("WO1", "FERM")) %>%
   select(Subject = participant_id, Group_new, period, Shannon, Faith_PD)
 
-# Make period a factor for plotting
+#make period a factor for plotting
 sd_plot_ferm$period <- factor(sd_plot_ferm$period,
                          levels = c("WO1", "FERM"),
                          labels = c("WO1", "Ferm"))
-# Recode Group_new and reorder group
+#rename groups in 'Group_new' and reorder group
 sd_plot_ferm$Group_new <- recode(sd_plot_ferm$Group_new,
                             "CTRL_AB" = "Healthy",
                             "Constipation" = "Constipation")
 sd_plot_ferm$Group_new <- factor(sd_plot_ferm$Group_new, levels = c("Healthy", "Constipation"))
 
-# Preview
+#preview
 head(sd_plot_ferm)
 
 
@@ -396,27 +371,26 @@ Ferm_FaithPD <- ggplot(sd_plot_ferm, aes(x = period, y = Faith_PD, fill = period
 
 
 #saving
-ggsave("Ferm_Veg_Shannon.png", plot = Ferm_Shannon, width = 6, height = 4, dpi = 300)
-ggsave("Ferm_Veg_FaithPD.png", plot = Ferm_FaithPD, width = 6, height = 4, dpi = 300)
+ggsave("A1_Alpha_Shannon_Ferm.png", plot = Ferm_Shannon, width = 6, height = 4, dpi = 300)
+ggsave("A1_Alpha_FaithPD_Ferm.png", plot = Ferm_FaithPD, width = 6, height = 4, dpi = 300)
 
 
 #### Beta Diversity ####
-#Subset to VEG and FERM periods
+#subset to VEG and FERM periods
 ps_beta <- subset_samples(ferm_rarefac, period %in% c("VEG", "FERM"))
 ps_beta <- prune_taxa(taxa_sums(ps_beta) > 0, ps_beta)  # remove zero-count OTUs
 
-#Prepare metadata
+#prepare metadata
 meta_df <- data.frame(sample_data(ps_beta), check.names = TRUE, stringsAsFactors = FALSE)
 
-# Make period a factor
+#make period a factor
 meta_df$period <- factor(meta_df$period, levels = c("VEG", "FERM"))
 
-# Rename groups and make period a facotr for plotting
+#rename groups and make period a factor for plotting
 meta_df$Group_new <- ifelse(meta_df$Group_new == "CTRL_AB", "Healthy", meta_df$Group_new)
 meta_df$Group_new <- factor(meta_df$Group_new, levels = c("Healthy", "Constipation"))
 
-
-#Bray-Curtis Distance
+##### Bray-Curtis Calculations #####
 #extract OTU table as matrix and ensure taxa are in columns
 otu_mat <- as(otu_table(ps_beta), "matrix")
 #calculate bray curtis distance
@@ -427,13 +401,15 @@ bray_dist <- vegdist(otu_mat, method = "bray")
 adonis_bc <- adonis2(bray_dist ~ period, data = meta_df)
 print(adonis_bc)
 
-#perform PCoA and create a data frame for plotting
+#perform classical multidimensional scaling on the Bray–Curtis distance matrix
+#k = 2 extracts the first two principal coordinate axes 
 pcoa_bc <- cmdscale(bray_dist, eig = TRUE, k = 2)
 
-#percent 
+#calculate percent variance explained by each axis
 eig_vals <- pcoa_bc$eig
 var_exp <- round((eig_vals / sum(eig_vals)) * 100, 2)
 
+#build a tidy data frame for plotting
 pcoa_df <- data.frame(
   Sample = rownames(meta_df),
   Axis1 = pcoa_bc$points[,1],
@@ -442,7 +418,7 @@ pcoa_df <- data.frame(
   Group_new = meta_df$Group_new
 )
 
-#Plot PCoA
+##### Bray-Curtis PCoA Plot #####
 bray_PCoA <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
   stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
@@ -457,7 +433,7 @@ bray_PCoA <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = G
   )
 
 
-#Faceted PCoA by group
+#plot PCoA (facet by group)
 bray_PCoA_facet <- bray_PCoA +
   facet_wrap(~Group_new) +
   theme(
@@ -465,20 +441,23 @@ bray_PCoA_facet <- bray_PCoA +
     panel.border = element_rect(color = "black", fill = NA, size = 1) 
   )
 
-#Save plots
-ggsave("FreshvsFerm_Bray_PCoA.png", bray_PCoA, width = 6, height = 4, dpi = 300)
-ggsave("FreshvsFerm_Bray_PCoA_facet.png", bray_PCoA_facet, width = 6, height = 4, dpi = 300)
+#save plots
+ggsave("A1_Beta_BC_FreshvsFerm.png", bray_PCoA, width = 6, height = 4, dpi = 300)
+ggsave("A1_Beta_BC_FreshvsFerm_facet.png", bray_PCoA_facet, width = 6, height = 4, dpi = 300)
 
 
-#Weighted UniFrac Distance
+##### Weighted UniFrac Calculations #####
 wunifrac_dist <- phyloseq::distance(ps_beta, method = "wunifrac")
 
 #PERMANOVA
 adonis_wu <- adonis2(wunifrac_dist ~ period, data = meta_df)
 print(adonis_wu)
 
-#perform PCoA and create a data frame for plotting
+#perform classical multidimensional scaling on the Weighted UniFrac distance matrix
+#k = 2 extracts the first two principal coordinate axes 
 pcoa_wu <- cmdscale(as.matrix(wunifrac_dist), eig = TRUE, k = 2)
+
+#build a tidy data frame for plotting
 pcoa_df_wu <- data.frame(
   Sample = rownames(meta_df),
   Axis1 = pcoa_wu$points[,1],
@@ -487,7 +466,7 @@ pcoa_df_wu <- data.frame(
   Group_new = meta_df$Group_new
 )
 
-# Plot Weighted UniFrac PCoA
+##### Weighted UniFrac PCoA Plot #####
 WUniFrac_PCoA <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
   stat_ellipse(aes(group = period), type = "norm", linetype = 2, alpha = 0.3) +
@@ -499,7 +478,7 @@ WUniFrac_PCoA <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = period, sh
        color = "Period",
        shape = "Group")
 
-# Faceted PCoA by group
+#plot PCoA (facet by group)
 WUniFrac_PCoA_facet <- WUniFrac_PCoA +
   facet_wrap(~Group_new) +
   theme(
@@ -508,9 +487,9 @@ WUniFrac_PCoA_facet <- WUniFrac_PCoA +
   )
 
 
-# Save plots
-ggsave("FreshvsFerm_WUniFrac_PCoA.png", WUniFrac_PCoA, width = 6, height = 4, dpi = 300)
-ggsave("FreshvsFerm_WUniFrac_PCoA_facet.png", WUniFrac_PCoA_facet, width = 6, height = 4, dpi = 300)
+#save plots
+ggsave("A1_Beta_WUF_FreshvsFerm.png", WUniFrac_PCoA, width = 6, height = 4, dpi = 300)
+ggsave("A1_Beta_WUF_FreshvsFerm_facet.png", WUniFrac_PCoA_facet, width = 6, height = 4, dpi = 300)
 
 
 #### DESeq2 ####
@@ -578,9 +557,10 @@ volcano_FERM
 volcano_VEG_FERM
 
 #save plots
-ggsave("Volcano_Base_vs_VEG.png", plot = volcano_VEG, width = 6, height = 4, dpi = 300)
-ggsave("Volcano_WO1_vs_FERM.png", plot = volcano_FERM, width = 6, height = 4, dpi = 300)
-ggsave("Volcano_VEG_vs_FERM.png", plot = volcano_VEG_FERM, width = 6, height = 4, dpi = 300)
+ggsave("A1_DESeq2_Volcano_BasevsVEG.png", plot = volcano_VEG, width = 6, height = 4, dpi = 300)
+ggsave("A1_DESeq2_Volcano_WO1vsFERM.png", plot = volcano_FERM, width = 6, height = 4, dpi = 300)
+ggsave("A1_DESeq2_Volcano_VEGvsFERM.png", plot = volcano_VEG_FERM, width = 6, height = 4, dpi = 300)
+
 
 
 #function to get significant taxa with enrichment direction
@@ -605,8 +585,7 @@ sig_all <- bind_rows(sig_VEG, sig_FERM, sig_VEG_FERM)
 head(sig_all)
 
 #save DESeq2 significant taxa as CSV
-write.csv(sig_all, "DESeq2_significant_taxa_all_comparisons.csv", row.names = FALSE)
-
+write.csv(sig_all, "A1_DESeq2_significant_taxa_all_comparisons.csv", row.names = FALSE)
 
 #merge DESeq2 analysis with taxonomy table
 #extract taxonomy table
@@ -618,7 +597,6 @@ sig_VEG_merged <- left_join(
   dplyr::rename(sig_VEG, ASV = Taxon),
   taxa_df,
   by = "ASV")
-
 
 sig_FERM_merged <- left_join(
   dplyr::rename(sig_FERM, ASV = Taxon),
@@ -634,7 +612,7 @@ sig_VEG_FERM_merged <- left_join(
 sig_all_merged <- bind_rows(sig_VEG_merged, sig_FERM_merged, sig_VEG_FERM_merged)
 
 #export
-write.csv(sig_all_merged, "DESeq2_significant_taxa_with_taxonomy.csv", row.names = FALSE)
+write.csv(sig_all_merged, "A1_DESeq2_significant_taxa_with_taxonomy.csv", row.names = FALSE)
 
 #get top 10 enriched/depleted taxa per group
 top10_taxa <- sig_all_merged %>%
@@ -645,8 +623,7 @@ top10_taxa <- sig_all_merged %>%
 
 #preview and save
 top10_taxa
-write.csv(top10_taxa, "DESeq2_top10_taxa_per_group.csv", row.names = FALSE)
-
+write.csv(top10_taxa, "A1_DESeq2_top10_taxa_per_group.csv", row.names = FALSE)
 
 #list for top 10 enriched/depleted taxa per comparison and per group
 top10_taxa_by_comparison <- sig_all_merged %>%
@@ -657,7 +634,7 @@ top10_taxa_by_comparison <- sig_all_merged %>%
 
 #preview and save
 top10_taxa_by_comparison
-write.csv(top10_taxa_by_comparison, "DESeq2_top10_taxa_per_comparison_group.csv", row.names = FALSE)
+write.csv(top10_taxa_by_comparison, "A1_DESeq2_top10_taxa_per_comparison_group.csv", row.names = FALSE)
 
 #make a label for taxa (use Genus if available, otherwise Family)
 heatmap_data <- top10_taxa_by_comparison %>%
@@ -670,8 +647,7 @@ heatmap_data <- top10_taxa_by_comparison %>%
   select(Comparison, TaxonLabel, log2FoldChange) %>%
   mutate(TaxonLabel = fct_reorder(TaxonLabel, log2FoldChange))
 
-
-#heatmap
+#heatmap plot of top 10 taxa
 heatmap_data <- heatmap_data %>%
   mutate(
     Comparison = factor(
@@ -700,13 +676,96 @@ Top10_heatmap <- ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill =
   theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave("A1_DESeq2_Top10.png", Top10_heatmap, width = 6, height = 4, dpi = 300)
+ggsave("A1_DESeq2_Heatmap_Top10Taxa.png", Top10_heatmap, width = 6, height = 4, dpi = 300)
 
 
 
 
 
-##Figure 2 Plots
+#### Manuscript Plots ####
+##### Alpha Diversity #####
+#custom colors
+my_colors <- c(
+  "Base" = "#4E79A7",
+  "Veg" = "#B699C6",
+  "WO1" = "#F28E2B",
+  "Ferm" = "#59A14F",
+  "WO2" = "#E15759"
+)
+
+# Adjust Shannon and Faith PD plots
+Veg_Shannon <- ggplot(sd_plot_veg, aes(x = period, y = Shannon, fill = period)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
+  facet_wrap(~Group_new) +
+  scale_fill_manual(values = my_colors) +
+  theme_minimal() +
+  labs(title = NULL, x = "Period", y = "Shannon Index") +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.grid = element_blank(),
+    panel.background = element_blank()
+  )
+
+Veg_FaithPD <- ggplot(sd_plot_veg, aes(x = period, y = Faith_PD, fill = period)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
+  facet_wrap(~Group_new) +
+  scale_fill_manual(values = my_colors) +
+  theme_minimal() +
+  labs(title = NULL, x = "Period", y = "Faith's PD") +
+  theme(
+    legend.position = "right",
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.grid = element_blank(),
+    panel.background = element_blank()
+  )
+
+Ferm_Shannon <- ggplot(sd_plot_ferm, aes(x = period, y = Shannon, fill = period)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
+  facet_wrap(~Group_new) +
+  scale_fill_manual(values = my_colors) +
+  theme_minimal() +
+  labs(title = NULL, x = "Period", y = "Shannon Index") +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.grid = element_blank(),
+    panel.background = element_blank()
+  )
+
+Ferm_FaithPD <- ggplot(sd_plot_ferm, aes(x = period, y = Faith_PD, fill = period)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
+  facet_wrap(~Group_new) +
+  scale_fill_manual(values = my_colors) +
+  theme_minimal() +
+  labs(title = NULL, x = "Period", y = "Faith's PD") +
+  theme(
+    legend.position = "right",
+    strip.text = element_text(face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.grid = element_blank(),
+    panel.background = element_blank()
+  )
+
+#combine alpha plots
+Alpha_Shannon_FaithPD_Combined <- 
+  (Veg_Shannon + Veg_FaithPD) /
+  (Ferm_Shannon + Ferm_FaithPD) +
+  plot_layout(widths = c(1, 2)) +  # slightly wider right column
+  plot_annotation(
+    title = "Alpha Diversity (Fresh vs Fermented Vegetable Interventions)"
+  )
+Alpha_Shannon_FaithPD_Combined
+
+#save
+ggsave("A1_Fig_Alpha_Shannon_FaithPD_Combined.png", Alpha_Shannon_FaithPD_Combined, width = 10, height = 10, dpi = 300)
+
+
+##### Beta Diversity #####
+#adjust BC and WUF PCoA plots
 #BC PCoA
 bray_PCoA_plot <- ggplot(pcoa_df, aes(x = Axis1, y = Axis2, color = period, shape = Group_new)) +
   geom_point(size = 4, alpha = 0.8) +
@@ -750,11 +809,33 @@ WUniFrac_PCoA_plot <- ggplot(pcoa_df_wu, aes(x = Axis1, y = Axis2, color = perio
     )
   )
 
-F2_combined_plot <- bray_PCoA_plot + plot_spacer() + WUniFrac_PCoA_plot +
+#combine beta plots
+Beta_BC_WUF_PCoA_Combined <- bray_PCoA_plot + plot_spacer() + WUniFrac_PCoA_plot +
   plot_layout(ncol = 3, widths = c(1, 0.1, 1))
-F2_combined_plot
+Beta_BC_WUF_PCoA_Combined
 
-ggsave("Fig2_Beta_Diversity_PCoA_Combined.png", F2_combined_plot, width = 6, height = 4, dpi = 300)
+#save
+ggsave("A1_Fig_Beta_BC_WUF_PCoA_Combined.png", Beta_BC_WUF_PCoA_Combined, width = 6, height = 4, dpi = 300)
 
+##### DESeq2 #####
+#adjust DESeq2 plots
+#remove legend for plotting
+volcano_VEG_plot <- volcano_VEG + theme(legend.position = "none")
+volcano_FERM_plot <- volcano_FERM + theme(legend.position = "none")
 
+#combine volcano plots
+combined_volcano <- volcano_VEG_plot + plot_spacer() + volcano_FERM_plot + plot_spacer() + volcano_VEG_FERM +
+  plot_layout(ncol = 5, widths = c(1, 0.05, 1, 0.05, 1)) &
+  theme(
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+combined_volcano
 
+#combined volcano plots will be combined with the Top10_heatmap plot manually (could not format scale of both plots to fit as one figure )
+Top10_heatmap
+
+#save
+ggsave("A1_Fig_DESeq2_Volcano.png", combined_volcano, width = 6, height = 4, dpi = 300)
