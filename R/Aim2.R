@@ -502,70 +502,6 @@ ggsave("A2_LMM_Alpha_FaithPD_Ferm.png", plot = LMM_ferm_veg_faith, width = 6, he
 ggsave("A2_LMM_Alpha_FaithPD_Ferm_box.png", plot = LMM_ferm_veg_faith_box, width = 6, height = 4, dpi = 300)
 
 
-#combined plot for alpha diversity (Shannon + Faith)
-#add the subset info and combine
-#fresh
-emm_df_fresh_s$metric <- "Shannon"
-emm_df_fresh_s$subset <- "Fresh"
-
-emm_df_fresh_f$metric <- "Faith_PD"
-emm_df_fresh_f$subset <- "Fresh"
-
-#ferm
-emm_df_ferm_s$metric <- "Shannon"
-emm_df_ferm_s$subset <- "Fermented"
-
-emm_df_ferm_f$metric <- "Faith_PD"
-emm_df_ferm_f$subset <- "Fermented"
-
-#microbiome washouts
-emm_df_microb_s$metric <- "Shannon"
-emm_df_microb_s$subset <- "Microbiome_Washout"
-
-emm_df_microb_f$metric <- "Faith_PD"
-emm_df_microb_f$subset <- "Microbiome_Washout"
-
-#combine all data
-plot_data <- bind_rows(
-  emm_df_fresh_s, emm_df_fresh_f,
-  emm_df_ferm_s, emm_df_ferm_f,
-  emm_df_microb_s, emm_df_microb_f
-)
-
-plot_data
-
-#reorder and change label names
-period_labels <- c(
-  "Base" = "Base",
-  "VEG"  = "VEG",
-  "FERM" = "FERM",
-  "WO1"  = "WO1",
-  "WO2"  = "WO2"
-)
-
-metric_labels <- c(
-  "Shannon" = "Shannon",
-  "Faith's PD" = "Faith's PD"
-)
-
-combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
-  facet_grid(metric ~ subset, scales = "free_y",
-             labeller = labeller(metric = metric_labels)) +
-  scale_x_discrete(labels = period_labels) +
-  ylab("Alpha Diversity") +
-  xlab("Period") +
-  theme_minimal() +
-  theme(
-    legend.position = "none",
-    panel.border = element_rect(colour = "black", fill = NA, size = 1),
-    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
-  )
-
-ggsave("A2_Alpha_Shannon_FaithPD_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
-
-
 ##### Microbiome LMM #####
 ###### Shannon ######
 #microbiome Shannon LMM
@@ -752,6 +688,71 @@ LMM_microbiome_faith_box <- ggplot(emm_df_microb_f, aes(x = period, y = emmean))
 #save plot
 ggsave("A2_LMM_Alpha_FaithPD_Microbiome.png", plot = LMM_microbiome_faith, width = 6, height = 4, dpi = 300)
 ggsave("A2_LMM_Alpha_FaithPD_Microbiome_box.png", plot = LMM_microbiome_faith_box, width = 6, height = 4, dpi = 300)
+
+
+#combined plot for alpha diversity (Shannon + Faith)
+#add the subset info and combine
+#fresh
+emm_df_fresh_s$metric <- "Shannon"
+emm_df_fresh_s$subset <- "Fresh"
+
+emm_df_fresh_f$metric <- "Faith_PD"
+emm_df_fresh_f$subset <- "Fresh"
+
+#ferm
+emm_df_ferm_s$metric <- "Shannon"
+emm_df_ferm_s$subset <- "Fermented"
+
+emm_df_ferm_f$metric <- "Faith_PD"
+emm_df_ferm_f$subset <- "Fermented"
+
+#microbiome washouts
+emm_df_microb_s$metric <- "Shannon"
+emm_df_microb_s$subset <- "Microbiome_Washout"
+
+emm_df_microb_f$metric <- "Faith_PD"
+emm_df_microb_f$subset <- "Microbiome_Washout"
+
+#combine all data
+plot_data <- bind_rows(
+  emm_df_fresh_s, emm_df_fresh_f,
+  emm_df_ferm_s, emm_df_ferm_f,
+  emm_df_microb_s, emm_df_microb_f
+)
+
+plot_data
+
+#reorder and change label names
+period_labels <- c(
+  "Base" = "Base",
+  "VEG"  = "VEG",
+  "FERM" = "FERM",
+  "WO1"  = "WO1",
+  "WO2"  = "WO2"
+)
+
+metric_labels <- c(
+  "Shannon" = "Shannon",
+  "Faith's PD" = "Faith's PD"
+)
+
+combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  facet_grid(metric ~ subset, scales = "free_y",
+             labeller = labeller(metric = metric_labels)) +
+  scale_x_discrete(labels = period_labels) +
+  ylab("Alpha Diversity") +
+  xlab("Period") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
+  )
+
+ggsave("A2_Alpha_Shannon_FaithPD_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
+
 
 
 #### Beta Diversity Linear Mixed Model (LMM) ####
@@ -1297,34 +1298,49 @@ emm_line_plot_taxa_facet <- function(emm_df, title = "LMM Top Taxa") {
 
 
 
-emm_line_plot_taxa_facet <- function(emm_df, facet_by = "Family_clean", title = "LMM Top Taxa") {
-  #build vector label
-  label_vec <- make_label_vector(emm_df)
+emm_line_plot_taxa_facet <- function(emm_df, title = "LMM Top Taxa") {
   
-  ggplot(emm_df, aes(x = period, y = emmean, group = taxon, color = taxon)) +
-    geom_point(size = 2) +
-    geom_line() +
-    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  ggplot(emm_df, aes(x = period, y = emmean, group = taxon)) +
+    geom_point(size = 2, color = "steelblue") + # single color
+    geom_line(color = "steelblue") +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2, color = "steelblue") +
     theme_bw() +
     labs(
       y = "Estimated VST Abundance",
       x = "Period",
-      title = title,
-      color = "Taxon"
+      title = title
     ) +
-    scale_color_discrete(labels = parse(text = label_vec)) +
-    facet_wrap(as.formula(paste("~", facet_by)), scales = "free_y") + # facet by family (or other)
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    facet_wrap(~ facet_label, scales = "free_y") + # use the facet_label column directly
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none"
+    )
 }
+
+#update labels for facet plots
+emm_fresh_named_fg_facet <- emm_fresh_named_fg %>%
+  mutate(facet_label = ifelse(!is.na(Genus_plot) & Genus_plot != "",
+                              paste(Family_plot, Genus_plot, sep = " "),
+                              Family_plot))
+
+emm_ferm_named_fg_facet <- emm_ferm_named_fg %>%
+  mutate(facet_label = ifelse(!is.na(Genus_plot) & Genus_plot != "",
+                              paste(Family_plot, Genus_plot, sep = " "),
+                              Family_plot))
+
+emm_microb_named_fg_facet <- emm_microb_named_fg %>%
+  mutate(facet_label = ifelse(!is.na(Genus_plot) & Genus_plot != "",
+                              paste(Family_plot, Genus_plot, sep = " "),
+                              Family_plot))
+
 #generate plots and save
-deseq_fresh_facet  <- emm_line_plot_taxa_facet(emm_fresh_named, title = "Top 10 Significant Unique Taxa: Fresh")
-deseq_ferm_facet   <- emm_line_plot_taxa_facet(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
-deseq_microb_facet <- emm_line_plot_taxa_facet(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
+deseq_fresh_facet  <- emm_line_plot_taxa_facet(emm_fresh_named_fg_facet, title = "Top 10 Significant Unique Taxa: Fresh")
+deseq_ferm_facet   <- emm_line_plot_taxa_facet(emm_ferm_named_fg_facet, title = "Top 10 Significant Taxa: Fermented")
+deseq_microb_facet <- emm_line_plot_taxa_facet(emm_microb_named_fg_facet, title = "Top 10 Significant Taxa: Microbiome Washout")
 
-ggsave("A2_LMM_DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 12, height = 10, dpi = 300)
-ggsave("A2_LMM_DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 12, height = 10, dpi = 300)
-ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 12, height = 10, dpi = 300)
-
+ggsave("A2_LMM_DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 15, height = 8, dpi = 300)
+ggsave("A2_LMM_DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 15, height = 8, dpi = 300)
+ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 8, height = 10, dpi = 300)
 
 
 #DESeq2 CSV File
