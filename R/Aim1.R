@@ -676,9 +676,7 @@ Top10_heatmap <- ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill =
   theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave("A1_DESeq2_Heatmap_Top10Taxa.png", Top10_heatmap, width = 6, height = 4, dpi = 300)
-
-
+ggsave("A1_DESeq2_Heatmap_Top10Taxa.png", Top10_heatmap, width = 15, height = 10, dpi = 300)
 
 
 
@@ -761,7 +759,7 @@ Alpha_Shannon_FaithPD_Combined <-
 Alpha_Shannon_FaithPD_Combined
 
 #save
-ggsave("A1_Fig_Alpha_Shannon_FaithPD_Combined.png", Alpha_Shannon_FaithPD_Combined, width = 10, height = 10, dpi = 300)
+ggsave("A1_Figure_Alpha_Shannon_FaithPD_Combined.png", Alpha_Shannon_FaithPD_Combined, width = 15, height = 10, dpi = 300)
 
 
 ##### Beta Diversity #####
@@ -815,7 +813,7 @@ Beta_BC_WUF_PCoA_Combined <- bray_PCoA_plot + plot_spacer() + WUniFrac_PCoA_plot
 Beta_BC_WUF_PCoA_Combined
 
 #save
-ggsave("A1_Fig_Beta_BC_WUF_PCoA_Combined.png", Beta_BC_WUF_PCoA_Combined, width = 6, height = 4, dpi = 300)
+ggsave("A1_Figure_Beta_BC_WUF_PCoA_Combined.png", Beta_BC_WUF_PCoA_Combined, width = 15, height = 8, dpi = 300)
 
 ##### DESeq2 #####
 #adjust DESeq2 plots
@@ -838,4 +836,4 @@ combined_volcano
 Top10_heatmap
 
 #save
-ggsave("A1_Fig_DESeq2_Volcano.png", combined_volcano, width = 6, height = 4, dpi = 300)
+ggsave("A1_Figure_DESeq2_Volcano.png", combined_volcano, width = 15, height = 8, dpi = 300)

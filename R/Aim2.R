@@ -501,6 +501,71 @@ LMM_ferm_veg_faith_box <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
 ggsave("A2_LMM_Alpha_FaithPD_Ferm.png", plot = LMM_ferm_veg_faith, width = 6, height = 4, dpi = 300)
 ggsave("A2_LMM_Alpha_FaithPD_Ferm_box.png", plot = LMM_ferm_veg_faith_box, width = 6, height = 4, dpi = 300)
 
+
+#combined plot for alpha diversity (Shannon + Faith)
+#add the subset info and combine
+#fresh
+emm_df_fresh_s$metric <- "Shannon"
+emm_df_fresh_s$subset <- "Fresh"
+
+emm_df_fresh_f$metric <- "Faith_PD"
+emm_df_fresh_f$subset <- "Fresh"
+
+#ferm
+emm_df_ferm_s$metric <- "Shannon"
+emm_df_ferm_s$subset <- "Fermented"
+
+emm_df_ferm_f$metric <- "Faith_PD"
+emm_df_ferm_f$subset <- "Fermented"
+
+#microbiome washouts
+emm_df_microb_s$metric <- "Shannon"
+emm_df_microb_s$subset <- "Microbiome_Washout"
+
+emm_df_microb_f$metric <- "Faith_PD"
+emm_df_microb_f$subset <- "Microbiome_Washout"
+
+#combine all data
+plot_data <- bind_rows(
+  emm_df_fresh_s, emm_df_fresh_f,
+  emm_df_ferm_s, emm_df_ferm_f,
+  emm_df_microb_s, emm_df_microb_f
+)
+
+plot_data
+
+#reorder and change label names
+period_labels <- c(
+  "Base" = "Base",
+  "VEG"  = "VEG",
+  "FERM" = "FERM",
+  "WO1"  = "WO1",
+  "WO2"  = "WO2"
+)
+
+metric_labels <- c(
+  "Shannon" = "Shannon",
+  "Faith's PD" = "Faith's PD"
+)
+
+combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  facet_grid(metric ~ subset, scales = "free_y",
+             labeller = labeller(metric = metric_labels)) +
+  scale_x_discrete(labels = period_labels) +
+  ylab("Alpha Diversity") +
+  xlab("Period") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
+  )
+
+ggsave("A2_Alpha_Shannon_FaithPD_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
+
+
 ##### Microbiome LMM #####
 ###### Shannon ######
 #microbiome Shannon LMM
@@ -870,25 +935,25 @@ plot_distance_lmm <- function(dist_df, lmm_res, title_prefix) {
 #generate plots for all datasets
 #fresh
 beta_fresh_BC <- plot_distance_lmm(dist_bc_fresh, lmm_bc_fresh, "Fresh Bray-Curtis")
-ggsave("A2_LMM_Beta_BC_Fresh.png", plot = beta_fresh_BC, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_BC_Fresh.png", plot = beta_fresh_BC, width = 10, height = 8, dpi = 300)
 
 beta_fresh_WUF <- plot_distance_lmm(dist_wu_fresh, lmm_wu_fresh, "Fresh Weighted UniFrac")
-ggsave("A2_LMM_Beta_WUF_Fresh.png", plot = beta_fresh_WUF, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_WUF_Fresh.png", plot = beta_fresh_WUF, width = 10, height = 8, dpi = 300)
 
 #fermented
 beta_ferm_BC <- plot_distance_lmm(dist_bc_ferm, lmm_bc_ferm, "Fermented Bray-Curtis")
-ggsave("A2_LMM_Beta_BC_Ferm.png", plot = beta_ferm_BC, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_BC_Ferm.png", plot = beta_ferm_BC, width = 10, height = 8, dpi = 300)
 
 beta_ferm_WUF <- plot_distance_lmm(dist_wu_ferm, lmm_wu_ferm, "Fermented Weighted UniFrac")
-ggsave("A2_LMM_Beta_WUF_Ferm.png", plot = beta_ferm_WUF, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_WUF_Ferm.png", plot = beta_ferm_WUF, width = 10, height = 8, dpi = 300)
 
 
 #microbiome washout
 beta_microbiome_BC <- plot_distance_lmm(dist_bc_microb, lmm_bc_microb, "Washout Bray-Curtis")
-ggsave("A2_LMM_Beta_BC_Microbiome.png", plot = beta_microbiome_BC, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_BC_Microbiome.png", plot = beta_microbiome_BC, width = 10, height = 8, dpi = 300)
 
 beta_microbiome_WUF <- plot_distance_lmm(dist_wu_microb, lmm_wu_microb, "Washout Weighted UniFrac")
-ggsave("A2_LMM_Beta_WUF_Microbiome.png", plot = beta_microbiome_WUF, width = 6, height = 4, dpi = 300)
+ggsave("A2_LMM_Beta_WUF_Microbiome.png", plot = beta_microbiome_WUF, width = 10, height = 8, dpi = 300)
 
 
 
@@ -920,7 +985,7 @@ posthoc_all <- bind_rows(
 
 #preview and export
 head(posthoc_all)
-write.csv(posthoc_all, "BetaDiversity_LMM_posthoc_contrasts.csv", row.names = FALSE)
+write.csv(posthoc_all, "A2_LMM_Beta_posthoc_contrasts.csv", row.names = FALSE)
 
 
 #### DESeq2 LMM ####
@@ -1198,9 +1263,9 @@ deseq_fresh_taxa <- emm_line_plot_taxa(emm_fresh_named, title = "Top 10 Signific
 deseq_ferm_taxa   <- emm_line_plot_taxa(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
 deseq_microb_taxa <- emm_line_plot_taxa(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
 
-ggsave("A2_LMM_DESeq2_Fresh.png", plot = deseq_fresh_taxa, width = 8, height = 6, dpi = 300)
-ggsave("A2_LMM_DESeq2_Ferm.png", plot = deseq_ferm_taxa, width = 8, height = 6, dpi = 300)
-ggsave("A2_LMM_DESeq2_Microbiome.png", plot = deseq_microb_taxa, width = 8, height = 6, dpi = 300)
+ggsave("A2_LMM_DESeq2_Fresh.png", plot = deseq_fresh_taxa, width = 15, height = 8, dpi = 300)
+ggsave("A2_LMM_DESeq2_Ferm.png", plot = deseq_ferm_taxa, width = 15, height = 8, dpi = 300)
+ggsave("A2_LMM_DESeq2_Microbiome.png", plot = deseq_microb_taxa, width = 15, height = 8, dpi = 300)
 
 
 #facet plots
@@ -1224,9 +1289,9 @@ deseq_fresh_facet  <- emm_line_plot_taxa_facet(emm_fresh_named, title = "Top 10 
 deseq_ferm_facet   <- emm_line_plot_taxa_facet(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
 deseq_microb_facet <- emm_line_plot_taxa_facet(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
 
-ggsave("A2_LMM_DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 8, height = 6, dpi = 300)
-ggsave("A2_LMM_DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 8, height = 6, dpi = 300)
-ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 8, height = 6, dpi = 300)
+ggsave("A2_LMM_DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 12, height = 10, dpi = 300)
+ggsave("A2_LMM_DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 12, height = 10, dpi = 300)
+ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 12, height = 10, dpi = 300)
 
 
 
@@ -1240,91 +1305,11 @@ emm_microb_named <- emm_microb_named %>% mutate(Subset = "Microbiome")
 all_top_taxa_points <- bind_rows(emm_fresh_named, emm_ferm_named, emm_microb_named)
 
 #save combined dataset
-write.csv(all_top_taxa_points, "Top10_Taxa_All_Subsets_Points.csv", row.names = FALSE)
-
-#calculate change and direction for plotting (wide format)
-taxa_change <- all_top_taxa_points %>%
-  pivot_wider(names_from = period, values_from = emmean) %>%
-  mutate(change = VEG - Base,
-         direction = ifelse(change > 0, "increase", "decrease"))
-
-#save change table
-write.csv(taxa_change, "Taxa_Change.csv", row.names = FALSE)
-
-
-
-
-
-###combine graphs
-#add the subset info and combine
-
-#fresh
-emm_df_fresh_s$metric <- "Shannon"
-emm_df_fresh_s$subset <- "Fresh"
-
-emm_df_fresh_f$metric <- "Faith_PD"
-emm_df_fresh_f$subset <- "Fresh"
-
-#ferm
-emm_df_ferm_s$metric <- "Shannon"
-emm_df_ferm_s$subset <- "Fermented"
-
-emm_df_ferm_f$metric <- "Faith_PD"
-emm_df_ferm_f$subset <- "Fermented"
-
-#microbiome washouts
-emm_df_microb_s$metric <- "Shannon"
-emm_df_microb_s$subset <- "Microbiome_Washout"
-
-emm_df_microb_f$metric <- "Faith_PD"
-emm_df_microb_f$subset <- "Microbiome_Washout"
-
-#combine all data
-plot_data <- bind_rows(
-  emm_df_fresh_s, emm_df_fresh_f,
-  emm_df_ferm_s, emm_df_ferm_f,
-  emm_df_microb_s, emm_df_microb_f
-)
-
-plot_data
-
-#reorder and change label names
-period_labels <- c(
-  "Base" = "Base",
-  "VEG"  = "VEG",
-  "FERM" = "FERM",
-  "WO1"  = "WO1",
-  "WO2"  = "WO2"
-)
-
-metric_labels <- c(
-  "Shannon" = "Shannon",
-  "Faith's PD" = "Faith's PD"
-)
-
-combined_plot <- ggplot(plot_data, aes(x = period, y = emmean, color = period)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
-  facet_grid(metric ~ subset, scales = "free_y",
-             labeller = labeller(metric = metric_labels)) +
-  scale_x_discrete(labels = period_labels) +
-  ylab("Alpha Diversity") +
-  xlab("Period") +
-  theme_minimal() +
-  theme(
-    legend.position = "none",
-    panel.border = element_rect(colour = "black", fill = NA, size = 1),
-    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5)
-  )
-
-
-ggsave("LMM_Alpha_combined.png", plot = combined_plot, width = 6, height = 4, dpi = 300)
-
-A2_LMM_DESeq2_Top10_Fresh.png
+write.csv(all_top_taxa_points, "A2_LMM_DESeq2_Top10_Taxa_All_Subsets_Points.csv", row.names = FALSE)
 
 
 #### Figure Plots ####
-##Legend 
+##### Legend for Alpha Plots #####
 #create a legend (couldn't extract all periods color as one legend)
 period_colors <- c(
   "Base" = "#4E79A7",
@@ -1345,26 +1330,19 @@ legend_plot <- ggplot(legend_data, aes(x = period, y = y, fill = period)) +
   scale_fill_manual(values = period_colors, name = "Period") +  # colors remain the same
   theme_void() +
   theme(legend.position = "right")  
+
 #extract the legend from the ggplot object
 shared_legend <- get_legend(legend_plot)
+
 #wrapextracted legend so it can be treated as a patchwork element
 legend_wrap <- wrap_elements(full = shared_legend)
 
 #save legend
-ggsave("Figure_3_LMM_Alpha_Faith_combined_legend.png", plot = legend_wrap, width = 6, height = 4, dpi = 300)
+ggsave("A2_Figure_LMM_Alpha_combined_legend.png", plot = legend_wrap, width = 6, height = 4, dpi = 300)
 
-
-
-##LMM alpha diversity (only Faith's PD)
-"Base" = "#4E79A7",
-"VEG" = "#B699C6",
-"WO1" = "#F28E2B",
-"FERM" = "#59A14F",
-"WO2" = "#E15759")
-
-
+##### Faith's PD LMM Plot #####
 LMM_fresh_veg_faith_box_plot <- ggplot(emm_df_fresh_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -1377,10 +1355,10 @@ LMM_fresh_veg_faith_box_plot <- ggplot(emm_df_fresh_f, aes(x = period, y = emmea
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_FRF,
     label = "label",
@@ -1403,7 +1381,7 @@ LMM_fresh_veg_faith_box_plot <- ggplot(emm_df_fresh_f, aes(x = period, y = emmea
 
 
 LMM_ferm_veg_faith_box_plot <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -1416,10 +1394,10 @@ LMM_ferm_veg_faith_box_plot <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_FEF,
     label = "label",
@@ -1441,7 +1419,7 @@ LMM_ferm_veg_faith_box_plot <- ggplot(emm_df_ferm_f, aes(x = period, y = emmean)
 
 
 LMM_microbiome_faith_box_plot <- ggplot(emm_df_microb_f, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -1454,10 +1432,10 @@ LMM_microbiome_faith_box_plot <- ggplot(emm_df_microb_f, aes(x = period, y = emm
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_MF,
     label = "label",
@@ -1483,12 +1461,12 @@ F3_combined_plot <- LMM_microbiome_faith_box_plot + plot_spacer() + LMM_fresh_ve
 F3_combined_plot
 
 #save plot
-ggsave("Figure_3_LMM_Alpha_Faith_combined.png", plot = F3_combined_plot, width = 6, height = 4, dpi = 300)
+ggsave("A2_Figure_LMM_Alpha_FaithPD_combined.png", plot = F3_combined_plot, width = 14, height = 10, dpi = 300)
 
-##LMM alpha diversity (Shannon for S1)
-
+##### Shannon LMM Plot #####
+#supplementary
 LMM_fresh_veg_shannon_box_plot <- ggplot(emm_df_fresh_s, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -1525,7 +1503,7 @@ LMM_fresh_veg_shannon_box_plot <- ggplot(emm_df_fresh_s, aes(x = period, y = emm
   scale_fill_manual(values = c("Base" = "#4E79A7", "VEG" = "#B699C6", "WO1" = "#F28E2B"))
 
 LMM_ferm_veg_shannon_box_plot <- ggplot(emm_df_ferm_s, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -1538,10 +1516,10 @@ LMM_ferm_veg_shannon_box_plot <- ggplot(emm_df_ferm_s, aes(x = period, y = emmea
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_FES,
     label = "label",
@@ -1562,9 +1540,8 @@ LMM_ferm_veg_shannon_box_plot <- ggplot(emm_df_ferm_s, aes(x = period, y = emmea
   scale_fill_manual(values = c("Base" = "#4E79A7", "FERM" = "#59A14F", "WO2" = "#E15759"))
 
 
-
 LMM_microbiome_shannon_box_plot <- ggplot(emm_df_microb_s, aes(x = period, y = emmean)) +
-  # box-like rectangles for CI, filled by period
+  #box-like rectangles for CI, filled by period
   geom_rect(
     aes(
       xmin = as.numeric(period) - 0.3,
@@ -1577,10 +1554,10 @@ LMM_microbiome_shannon_box_plot <- ggplot(emm_df_microb_s, aes(x = period, y = e
     inherit.aes = FALSE
   ) +
   
-  # EMM points in the middle
+  #EMM points in the middle
   geom_point(size = 3, color = "black") +
   
-  # Add significance labels
+  #add significance labels
   stat_pvalue_manual(
     pval_table_MS,
     label = "label",
@@ -1609,8 +1586,7 @@ S1_LMM_Shannon_combined_plot <- LMM_microbiome_shannon_box_plot +
 S1_LMM_Shannon_combined_plot
 
 #save plot
-ggsave("Sup_Figure_1_LMM_Alpha_Shannon_combined.png", plot = S1_LMM_Shannon_combined_plot, width = 6, height = 4, dpi = 300)
-
+ggsave("A2_Figure_LMM_Alpha_Shannon_combined.png", plot = S1_LMM_Shannon_combined_plot, width = 14, height = 10, dpi = 300)
 
 ##LMM beta diversity (only Bray-Curtis)
 # Combine plots
