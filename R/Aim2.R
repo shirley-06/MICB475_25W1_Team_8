@@ -1265,7 +1265,7 @@ emm_line_plot_taxa <- function(emm_df, title = "LMM Top Taxa") {
       color = "Taxon"
     ) +
     scale_color_discrete(labels = parse(text = label_vec)) + #apply vector label
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 0, hjust = 1))
 }
 
 #generate and save 
@@ -1862,3 +1862,29 @@ write.csv(posthoc_all, "A2_LMM_Beta_posthoc_contrasts.csv", row.names = FALSE)
 
 
 ##### DESeq2 LMM Plots #####
+#combine plots, reformatted to remove make text smaller
+DESeq2_combined <- (deseq_fresh_taxa + labs(title = NULL) + 
+                      theme(
+                        axis.title.x = element_text(size = 10), 
+                        axis.title.y = element_text(size = 10), 
+                        legend.key.size = unit(0.5, "cm"),
+                        legend.text = element_text(size = 8),
+                        legend.title = element_text(size = 9))) /
+  plot_spacer() /
+  (deseq_ferm_taxa + labs(title = NULL) +  
+     theme(axis.title.x = element_text(size = 10), 
+            axis.title.y = element_text(size = 10), 
+            legend.key.size = unit(0.5, "cm"),
+            legend.text = element_text(size = 8),
+            legend.title = element_text(size = 9))) /
+  plot_spacer() /
+  (deseq_microb_taxa + labs(title = NULL) +  
+     theme(axis.title.x = element_text(size = 10), 
+            axis.title.y = element_text(size = 10), 
+            legend.key.size = unit(0.5, "cm"),
+            legend.text = element_text(size = 8),
+            legend.title = element_text(size = 9)))  +
+  plot_annotation(title = "DESeq2 Top 10 Significant Unique Taxa LMM Analysis") +
+  plot_layout(heights = c(1, 0.025, 1, 0.025, 1))
+
+ggsave("A2_Figure_LMM_DESeq2_Combined.png", plot = DESeq2_combined, width = 10, height = 15, dpi = 300)
