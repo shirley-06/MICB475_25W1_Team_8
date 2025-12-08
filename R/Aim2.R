@@ -1588,7 +1588,8 @@ S1_LMM_Shannon_combined_plot
 #save plot
 ggsave("A2_Figure_LMM_Alpha_Shannon_combined.png", plot = S1_LMM_Shannon_combined_plot, width = 14, height = 10, dpi = 300)
 
-##LMM beta diversity (only Bray-Curtis)
+##### Bray-Curtis LMM Plot #####
+
 # Combine plots
 beta_combined_BC <- (beta_fresh_BC) /
   (beta_ferm_BC)  /

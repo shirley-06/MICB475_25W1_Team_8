@@ -832,8 +832,8 @@ combined_volcano <- volcano_VEG_plot + plot_spacer() + volcano_FERM_plot + plot_
   )
 combined_volcano
 
-#combined volcano plots will be combined with the Top10_heatmap plot manually (could not format scale of both plots to fit as one figure )
-Top10_heatmap
-
 #save
 ggsave("A1_Figure_DESeq2_Volcano.png", combined_volcano, width = 15, height = 8, dpi = 300)
+
+#DESeq2 volcano plot to be combined with the Top10_heatmap plot manually (could not format scale of both plots to fit as one figure )
+Top10_heatmap
