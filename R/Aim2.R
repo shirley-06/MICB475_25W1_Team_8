@@ -842,24 +842,23 @@ dist_wu_microb <- distance_to_baseline(beta_wu_microb_mat, meta_microb_df)
 ##### LMM on Distance-to-baseline #####
 #function fits LMM (period as fixed effect and participant_id as random effects) and returns ANOVA and post-hoc contract
 run_lmm <- function(dist_df, response_label = "Distance") {
-  # Ensure factors
+  #ensure factors
   dist_df$participant_id <- factor(dist_df$participant_id)
-  dist_df$period <- factor(dist_df$period, levels = unique(dist_df$period))
   
-  # Fit linear mixed model
+  #fit linear mixed model
   lmm_model <- lmer(distance ~ period + (1 | participant_id), data = dist_df)
   
-  # ANOVA table
+  #ANOVA table
   anova_res <- anova(lmm_model)
   
-  # Post-hoc pairwise comparisons
+  #post-hoc pairwise comparisons
   emmeans_res <- emmeans(lmm_model, pairwise ~ period)
   
-  # Prepare estimated marginal means for plotting
+  #prepare estimated marginal means for plotting
   emm_df <- as.data.frame(emmeans(lmm_model, ~ period))
   emm_df$response <- response_label
   
-  # Return as a list
+  #return as a list
   return(list(
     model = lmm_model,
     anova = anova_res,
@@ -868,18 +867,23 @@ run_lmm <- function(dist_df, response_label = "Distance") {
   ))
 }
 
-#Fresh Bray-Curtis
+#set period factor levels to ensure Base is reference
+dist_bc_fresh$period <- factor(dist_bc_fresh$period, levels = c("Base", "VEG", "WO1"))
+dist_bc_ferm$period  <- factor(dist_bc_ferm$period, levels = c("Base", "FERM", "WO2"))
+dist_bc_microb$period <- factor(dist_bc_microb$period, levels = c("Base", "WO1", "WO2"))
+
+# Now run LMM
+#fresh
 lmm_bc_fresh <- run_lmm(dist_bc_fresh, response_label = "Bray-Curtis")
 lmm_wu_fresh <- run_lmm(dist_wu_fresh, response_label = "Weighted UniFrac")
 
-# Fermented
+#fermented
 lmm_bc_ferm <- run_lmm(dist_bc_ferm, response_label = "Bray-Curtis")
 lmm_wu_ferm <- run_lmm(dist_wu_ferm, response_label = "Weighted UniFrac")
 
-# Microbiome washouts
+#microbiome washout
 lmm_bc_microb <- run_lmm(dist_bc_microb, response_label = "Bray-Curtis")
 lmm_wu_microb <- run_lmm(dist_wu_microb, response_label = "Weighted UniFrac")
-
 
 #quick check
 head(dist_bc_fresh)
@@ -954,38 +958,6 @@ ggsave("A2_LMM_Beta_BC_Microbiome.png", plot = beta_microbiome_BC, width = 10, h
 
 beta_microbiome_WUF <- plot_distance_lmm(dist_wu_microb, lmm_wu_microb, "Washout Weighted UniFrac")
 ggsave("A2_LMM_Beta_WUF_Microbiome.png", plot = beta_microbiome_WUF, width = 10, height = 8, dpi = 300)
-
-
-
-#function to extract post-hoc contrasts as a table
-get_posthoc_table <- function(lmm_res, response_label = "Distance") {
-  contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
-    dplyr::mutate(
-      response = response_label
-    )
-  return(contrasts_df)
-}
-
-#extract post-hoc contrasts 
-posthoc_bc_fresh <- get_posthoc_table(lmm_bc_fresh, "Bray-Curtis - Fresh")
-posthoc_wu_fresh <- get_posthoc_table(lmm_wu_fresh, "Weighted UniFrac - Fresh")
-
-posthoc_bc_ferm <- get_posthoc_table(lmm_bc_ferm, "Bray-Curtis - Fermented")
-posthoc_wu_ferm <- get_posthoc_table(lmm_wu_ferm, "Weighted UniFrac - Fermented")
-
-posthoc_bc_microb <- get_posthoc_table(lmm_bc_microb, "Bray-Curtis - Washout")
-posthoc_wu_microb <- get_posthoc_table(lmm_wu_microb, "Weighted UniFrac - Washout")
-
-#combine all into a single table
-posthoc_all <- bind_rows(
-  posthoc_bc_fresh, posthoc_wu_fresh,
-  posthoc_bc_ferm, posthoc_wu_ferm,
-  posthoc_bc_microb, posthoc_wu_microb
-)
-
-#preview and export
-head(posthoc_all)
-write.csv(posthoc_all, "A2_LMM_Beta_posthoc_contrasts.csv", row.names = FALSE)
 
 
 #### DESeq2 LMM ####
@@ -1588,48 +1560,200 @@ S1_LMM_Shannon_combined_plot
 #save plot
 ggsave("A2_Figure_LMM_Alpha_Shannon_combined.png", plot = S1_LMM_Shannon_combined_plot, width = 14, height = 10, dpi = 300)
 
-##### Bray-Curtis LMM Plot #####
+##### Beta Diversity LMM Plot #####
+###### BC LMM Plot ######
+#remake trajectories and box plots for plotting
+plot_distance_lmm_fig <- function(dist_df, lmm_res, title_prefix) {
+  #extract post-hoc contrast table
+  contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
+    mutate(
+      group1 = gsub(" -.*", "", contrast),
+      group2 = gsub(".*- ", "", contrast),
+      sig = case_when(
+        p.value < 0.001 ~ "***",
+        p.value < 0.01  ~ "**",
+        p.value < 0.05  ~ "*"
+      )
+    ) %>%
+    mutate(
+      y.position = c(0.7, 0.77, 1)[1:n()]  # Adjust as needed for number of comparisons
+    ) %>%
+    dplyr::select(group1, group2, sig, y.position)
+  
+  #trajectory plot with border
+  line_plot <- ggplot(dist_df, aes(x = period, y = distance, group = participant_id)) +
+    geom_line(alpha = 0.3, color = "grey") +
+    stat_summary(aes(group = 1), fun = mean, geom = "line", color = "blue", size = 1.2) +
+    stat_summary(aes(group = 1), fun.data = mean_se, geom = "ribbon", fill = "blue", alpha = 0.2) +
+    labs(x = "Period", y = "Distance to Baseline") +
+    theme_minimal() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+    )
+  
+  #boxplot with border + no grid
+  box_plot <- ggplot(dist_df, aes(x = period, y = distance, fill = period)) +
+    geom_violin(alpha = 0.5) +
+    geom_boxplot(width = 0.2, outlier.shape = NA) +
+    stat_summary(fun = mean, geom = "point", shape = 21, size = 3,
+                 color = "black", fill = "yellow") +
+    ggpubr::stat_pvalue_manual(contrasts_df, label = "sig", tip.length = 0.01) +
+    scale_fill_manual(values = period_colors) + 
+    labs(x = "Period", y = "Distance to Baseline") +
+    scale_y_continuous(limits = c(0, 0.8)) +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+      legend.position = "none",
+      plot.title = element_blank()
+    )
+  
+  #combine side by side
+  combined_plot <- (line_plot | plot_spacer() | box_plot) +
+    plot_layout(widths = c(1, 0.05, 1))
 
-# Combine plots
-beta_combined_BC <- (beta_fresh_BC) /
-  (beta_ferm_BC)  /
-  (beta_microbiome_BC) + 
-  plot_annotation(title = "Bray-Curtis Beta Diversity LMM Analysis")
+  return(combined_plot)
+}
 
-# Save
-ggsave("Beta_BrayCurtis_Combined.png", plot = beta_combined_BC, width = 6, height = 12, dpi = 300)
+#make plots
+beta_fresh_BC_plot <- plot_distance_lmm_fig(dist_bc_fresh, lmm_bc_fresh, "Fresh Bray-Curtis")
+beta_ferm_BC_plot <- plot_distance_lmm_fig(dist_bc_ferm, lmm_bc_ferm, "Fermented Bray-Curtis")
+beta_microbiome_BC_plot <- plot_distance_lmm_fig(dist_bc_microb, lmm_bc_microb, "Washout Bray-Curtis")
 
+#combine plots
+beta_combined_BC <- (beta_microbiome_BC_plot) /
+  plot_spacer() /
+  (beta_fresh_BC_plot)  /
+  plot_spacer() /
+  (beta_ferm_BC_plot) + 
+  plot_annotation(title = "Bray-Curtis Beta Diversity LMM Analysis") +
+  plot_layout(heights = c(1, 0.025, 1, 0.025, 1))  
 
-beta_combined_BC <- (beta_fresh_BC) /
-  (beta_ferm_BC)  /
-  (beta_microbiome_BC) + 
-  plot_annotation(title = "Bray-Curtis Beta Diversity LMM Analysis")
+#save
+ggsave("A2_Figure_LMM_Beta_BC_Combined.png", plot = beta_combined_BC, width = 10, height = 15, dpi = 300)
 
-# Save the combined figure
-ggsave("Beta_Diversity_Combined.png", plot = beta_combined, width = 12, height = 12, dpi = 300)
+###### WUF LMM Plot ######
+#remake trajectories and box plots for plotting
+plot_distance_lmm_fig_WUF <- plot_distance_lmm_fig <- function(dist_df, lmm_res, title_prefix, sig_y = NULL) {
+  
+  #extract post-hoc contrast table
+  contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
+    mutate(
+      group1 = gsub(" -.*", "", contrast),
+      group2 = gsub(".*- ", "", contrast),
+      sig = case_when(
+        p.value < 0.001 ~ "***",
+        p.value < 0.01  ~ "**",
+        p.value < 0.05  ~ "*"
+      )
+    )
+  
+  #assign y positions
+  if (!is.null(sig_y)) {
+    contrasts_df$y.position <- sig_y
+  } else {
+    n_comp <- nrow(contrasts_df)
+    step <- 0.05
+    contrasts_df$y.position <- max(dist_df$distance) + seq(step, step*n_comp, by=step) * max(dist_df$distance)
+  }
+  
+  contrasts_df <- contrasts_df %>% dplyr::select(group1, group2, sig, y.position)
+  
+  #trajectory plot
+  line_plot <- ggplot(dist_df, aes(x = period, y = distance, group = participant_id)) +
+    geom_line(alpha = 0.3, color = "grey") +
+    stat_summary(aes(group = 1), fun = mean, geom = "line", color = "blue", size = 1.2) +
+    stat_summary(aes(group = 1), fun.data = mean_se, geom = "ribbon", fill = "blue", alpha = 0.2) +
+    labs(x = "Period", y = "Distance to Baseline") +
+    theme_minimal() +
+    theme(panel.border = element_rect(color = "black", fill = NA, linewidth = 1))
+  
+  #boxplot
+  box_plot <- ggplot(dist_df, aes(x = period, y = distance, fill = period)) +
+    geom_violin(alpha = 0.5) +
+    geom_boxplot(width = 0.2, outlier.shape = NA) +
+    stat_summary(fun = mean, geom = "point", shape = 21, size = 3,
+                 color = "black", fill = "yellow") +
+    ggpubr::stat_pvalue_manual(contrasts_df, label = "sig", tip.length = 0.01) +
+    scale_fill_manual(values = period_colors) +
+    labs(x = "Period", y = "Distance to Baseline") +
+    scale_y_continuous(limits = c(0, 0.1)) +
+    theme_minimal() +
+    theme(panel.grid = element_blank(),
+          panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+          legend.position = "none",
+          plot.title = element_blank())
+  
+  #combine
+  combined_plot <- (line_plot | plot_spacer() | box_plot) +
+    plot_layout(widths = c(1, 0.05, 1))
+  
+  return(combined_plot)
+}
 
+#manually set y positions for significance brackets
+manual_y <- c(0.075, 0.085, 0.09)  #adjust for number of comparisons
+manual_y_ferm <- c(0.09, 0.098, 0.099)
 
+#make plots
+beta_fresh_WUF_plot <- plot_distance_lmm_fig_WUF(dist_wu_fresh, lmm_wu_fresh, "Fresh Weighted UniFrac", sig_y = manual_y)
+beta_ferm_WUF_plot <- plot_distance_lmm_fig_WUF(dist_wu_ferm, lmm_wu_ferm, "Fermented Weighted UniFrac", sig_y = manual_y_ferm)
+beta_microbiome_WUF_plot <- plot_distance_lmm_fig_WUF(dist_wu_microb, lmm_wu_microb, "Washout Weighted UniFrac", sig_y = manual_y)
 
+#combine plots
+beta_combined_WUF <- (beta_microbiome_WUF_plot) /
+  plot_spacer() /
+  (beta_fresh_WUF_plot)  /
+  plot_spacer() /
+  (beta_ferm_WUF_plot) + 
+  plot_annotation(title = "Weighted UniFrac Beta Diversity LMM Analysis") +
+  plot_layout(heights = c(1, 0.025, 1, 0.025, 1))  
 
-wu_posthoc <- posthoc_all %>%
-  filter(grepl("Weighted UniFrac", response)) %>%
-  mutate(
-    significance = case_when(
-      p.value < 0.001 ~ "***",
-      p.value < 0.01 ~ "**",
-      p.value < 0.05 ~ "*",
-      TRUE ~ ""
-    ),
-    direction = ifelse(estimate > 0, "away from baseline", "toward baseline")
-  ) %>%
-  select(Metric = response,
-         Contrast = contrast,
-         Estimate = estimate,
-         SE = SE,
-         t_ratio = t.ratio,
-         p_value = p.value,
-         Significance = significance,
-         Direction = direction)
+#save
+ggsave("A2_Figure_LMM_Beta_WUF_Combined.png", plot = beta_combined_WUF, width = 10, height = 15, dpi = 300)
 
-head(wu_posthoc)
+###### Beta LMM Post-hoc Table ######
+#general trends for all BC plots are the same, with significance found between base > intervention and base > WO1 (not surprising because of distance-to-baseline calculations)
+#extract the post-hoc contrast across BC and WUF and make a table to see if there are less or more changes in beta diversity between subsets
 
+#function to extract post-hoc contrasts as a table
+get_posthoc_table <- function(lmm_res, response_label = "Distance") {
+  contrasts_df <- as.data.frame(lmm_res$emmeans$contrasts) %>%
+    dplyr::mutate(
+      response = response_label
+    )
+  return(contrasts_df)
+}
+
+#extract post-hoc contrasts 
+posthoc_bc_fresh <- get_posthoc_table(lmm_bc_fresh, "Bray-Curtis - Fresh")
+posthoc_wu_fresh <- get_posthoc_table(lmm_wu_fresh, "Weighted UniFrac - Fresh")
+
+posthoc_bc_ferm <- get_posthoc_table(lmm_bc_ferm, "Bray-Curtis - Fermented")
+posthoc_wu_ferm <- get_posthoc_table(lmm_wu_ferm, "Weighted UniFrac - Fermented")
+
+posthoc_bc_microb <- get_posthoc_table(lmm_bc_microb, "Bray-Curtis - Washout")
+posthoc_wu_microb <- get_posthoc_table(lmm_wu_microb, "Weighted UniFrac - Washout")
+
+#combine all into a single table
+posthoc_all <- bind_rows(
+  posthoc_bc_fresh, posthoc_wu_fresh,
+  posthoc_bc_ferm, posthoc_wu_ferm,
+  posthoc_bc_microb, posthoc_wu_microb
+)
+
+#preview and export
+head(posthoc_all)
+write.csv(posthoc_all, "A2_LMM_Beta_posthoc_contrasts.csv", row.names = FALSE)
+
+#will calculate the eemeans difference to base of previous period for all subset manually 
+#example:
+    #`VEG-Base Difference` = VEG - Base,
+    #`VEG-Base Direction` = ifelse(`VEG-Base Difference` == 0, "no change",
+    #                              ifelse(`VEG-Base Difference` > 0, "increase", "decrease")),
+    
+    #`WO1-VEG Difference` = WO1 - VEG,
+    #`WO1-VEG Direction` = ifelse(`WO1-VEG Difference` == 0, "no change",
+    #                             ifelse(`WO1-VEG Difference` > 0, "increase", "decrease")),
