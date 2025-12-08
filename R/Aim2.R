@@ -1049,62 +1049,79 @@ vst_microb_long <- vst_df_microb %>%
   left_join(meta_microb_df, by = "SampleID")
 
 
-#identify top significant taxa (n=10)
-top_n <- 10
+#function to top 10 unique taxa by genus
+get_top_unique_taxa <- function(res, physeq_obj, top_n = 10, tax_level = "Genus") {
+  #extract taxonomy table
+   tax_df <- as.data.frame(tax_table(physeq_obj)) %>%
+    rownames_to_column("taxon")
+  
+  #join DESeq2 results with taxonomy
+  res_df <- as.data.frame(res) %>%
+    rownames_to_column("taxon") %>%
+    select(taxon, padj) %>%
+    mutate(padj = as.numeric(padj)) %>%
+    filter(!is.na(padj)) %>%
+    left_join(tax_df, by = "taxon") %>%
+    mutate(temp_tax = .data[[tax_level]])
 
-#fresh
-res_fresh_df <- as.data.frame(res_fresh_VEG_vs_Base) %>%
-  rownames_to_column(var = "taxon") %>%  #move rownames to a column
-  select(taxon, padj) %>%                #keep only the columns we need
-  mutate(padj = as.numeric(padj)) %>%    #ensure padj is numeric
-  filter(!is.na(padj)) %>%               #remove NA padj values
-  arrange(padj)                          #sort by smallest padj
+  #pick most sig OTU per taxon group (ensures uniqueness)
+  top_per_group <- res_df %>%
+    group_by(temp_tax) %>%
+    slice_min(padj, n = 1, with_ties = FALSE) %>% # most significant OTU per genus/family
+    ungroup() %>%
+    arrange(padj) %>%
+    distinct(temp_tax, .keep_all = TRUE) %>% # remove any repeated genus/family
+    slice_head(n = top_n) %>% # select top N unique taxa
+    pull(taxon)
+  
+  return(top_per_group)
+  
+}
 
-top_taxa_fresh <- res_fresh_df %>%
-  slice_head(n = top_n) %>%              #select top n taxa
-  pull(taxon)
+#keep original files intact
+vst_fresh_long_orig <- vst_fresh_long
+vst_ferm_long_orig  <- vst_ferm_long
+vst_microb_long_orig <- vst_microb_long
 
-#ferm
-res_ferm_df <- as.data.frame(res_ferm_FERM_vs_Base) %>%
-  rownames_to_column(var = "taxon") %>%
-  select(taxon, padj) %>%
-  mutate(padj = as.numeric(padj)) %>%
-  filter(!is.na(padj)) %>%
-  arrange(padj)
-
-top_taxa_ferm <- res_ferm_df %>%
-  slice_head(n = top_n) %>%
-  pull(taxon)
-
-#microbiome
-res_microb_df <- as.data.frame(res_microb_WO1_vs_Base) %>%
-  rownames_to_column(var = "taxon") %>%
-  select(taxon, padj) %>%
-  mutate(padj = as.numeric(padj)) %>%
-  filter(!is.na(padj)) %>%
-  arrange(padj)
-
-top_taxa_microb <- res_microb_df %>%
-  slice_head(n = top_n) %>%
-  pull(taxon)
-
-
-#filter the VST-long datasets for top taxa
-vst_fresh_long_top <- vst_fresh_long %>%
-  filter(taxon %in% top_taxa_fresh)
-vst_ferm_long_top <- vst_ferm_long %>%
-  filter(taxon %in% top_taxa_ferm)
-vst_microb_long_top <- vst_microb_long %>%
-  filter(taxon %in% top_taxa_microb)
+#apply function to each subset
+top_taxa_fresh <- get_top_unique_taxa(res_fresh_VEG_vs_Base, ps_fresh, top_n = 10, tax_level = "Genus")
+top_taxa_ferm <- get_top_unique_taxa(res_ferm_FERM_vs_Base, ps_ferm, top_n = 10, tax_level = "Genus")
+top_taxa_microb <- get_top_unique_taxa(res_microb_WO1_vs_Base, ps_microb, top_n = 10, tax_level = "Genus")
 
 
-#run LMM per taxon
+#filter VST-long datasets for top unique taxa
+vst_fresh_long_top <- vst_fresh_long_orig %>%
+  filter(taxon %in% top_taxa_fresh) %>%
+  mutate(
+    period = factor(period, levels = c("Base", "VEG", "WO1")),
+    participant_id = factor(participant_id),
+    vst_abundance = as.numeric(vst_abundance)
+  )
+
+vst_ferm_long_top <- vst_ferm_long_orig %>%
+  filter(taxon %in% top_taxa_ferm) %>%
+  mutate(
+    period = factor(period, levels = c("Base", "FERM", "WO2")),
+    participant_id = factor(participant_id),
+    vst_abundance = as.numeric(vst_abundance)
+  )
+
+vst_microb_long_top <- vst_microb_long_orig %>%
+  filter(taxon %in% top_taxa_microb) %>%
+  mutate(
+    period = factor(period, levels = c("Base", "WO1", "WO2")),
+    participant_id = factor(participant_id),
+    vst_abundance = as.numeric(vst_abundance)
+  )
+
+#run LMM
 run_lmm <- function(df) {
   df %>%
     group_by(taxon) %>%
     group_modify(~{
+      dat <- as.data.frame(.x)
       tryCatch({
-        m <- lmer(vst_abundance ~ period + (1 | participant_id), data = .x)
+        m <- lmer(vst_abundance ~ period + (1 | participant_id), data = dat)
         emm <- emmeans(m, pairwise ~ period)
         tibble(
           model = list(m),
@@ -1117,8 +1134,8 @@ run_lmm <- function(df) {
     })
 }
 
-lmm_results_fresh  <- run_lmm(vst_fresh_long_top)
-lmm_results_ferm   <- run_lmm(vst_ferm_long_top)
+lmm_results_fresh <- run_lmm(vst_fresh_long_top)
+lmm_results_ferm <- run_lmm(vst_ferm_long_top)
 lmm_results_microb <- run_lmm(vst_microb_long_top)
 
 #double-check the periods used in LMM
@@ -1174,7 +1191,144 @@ emm_microb <- lmm_results_microb %>%
   tidyr::unnest(cols = c(emm_df))
 
 
-#create function to merge taxa
+#function to merge taxa (family and genus)
+add_taxon_labels_family_genus <- function(emm_df, physeq_obj) {
+  tax_df <- as.data.frame(tax_table(physeq_obj)) %>% 
+    rownames_to_column("taxon") %>%
+    mutate(
+      #keep underscores internally for merging
+      Family = str_replace_all(Family, " ", "_"),
+      Genus  = str_replace_all(Genus, " ", "_")
+    )
+  
+  emm_named <- emm_df %>%
+    left_join(tax_df, by = "taxon") %>%
+    mutate(
+      Family_clean = str_remove(Family, "^f__"),
+      Genus_clean  = str_remove(Genus, "^g__"),
+      
+      #for ggplot: replace "_" → " " *only in the plotted label*
+      Family_plot = str_replace_all(Family_clean, "_", " "),
+      Genus_plot  = str_replace_all(Genus_clean, "_", " "),
+      
+      taxon_label_gg = ifelse(
+        !is.na(Genus_plot) & Genus_plot != "",
+        paste0("'", Family_plot, "' ~ italic('", Genus_plot, "')"),
+        paste0("'", Family_plot, "'")
+      )
+    )
+  
+  return(emm_named)
+}
+
+
+
+#filter for top taxa
+emm_fresh_top <- emm_fresh %>% filter(taxon %in% top_taxa_fresh)
+emm_ferm_top  <- emm_ferm  %>% filter(taxon %in% top_taxa_ferm)
+emm_microb_top<- emm_microb %>% filter(taxon %in% top_taxa_microb)
+
+#add labels
+emm_fresh_named_fg <- add_taxon_labels_family_genus(emm_fresh_top, ps_fresh)
+emm_ferm_named_fg  <- add_taxon_labels_family_genus(emm_ferm_top, ps_ferm)
+emm_microb_named_fg<- add_taxon_labels_family_genus(emm_microb_top, ps_microb)
+
+
+#function for ggplot labels
+make_label_vector <- function(df) {
+ #get unique pairs
+   labs <- df %>%
+    distinct(taxon, taxon_label_gg)
+  
+  #create named vector
+  label_vec <- labs$taxon_label_gg
+  names(label_vec) <- labs$taxon
+  
+  return(label_vec)
+}
+
+#line plot
+emm_line_plot_taxa <- function(emm_df, title = "LMM Top Taxa") {
+  #build vector label
+  label_vec <- make_label_vector(emm_df)
+  
+  ggplot(emm_df, aes(x = period, y = emmean, group = taxon, color = taxon)) +
+    geom_point(size = 2) +
+    geom_line() +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    theme_bw() +
+    labs(
+      y = "Estimated VST Abundance",
+      x = "Period",
+      title = title,
+      color = "Taxon"
+    ) +
+    scale_color_discrete(labels = parse(text = label_vec)) + #apply vector label
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+#generate and save 
+deseq_fresh_taxa <- emm_line_plot_taxa(emm_fresh_named_fg, title = "Top 10 Significant Unique Taxa: Fresh")
+deseq_ferm_taxa   <- emm_line_plot_taxa(emm_ferm_named_fg, title = "Top 10 Significant Unique Taxa: Fermented")
+deseq_microb_taxa <- emm_line_plot_taxa(emm_microb_named_fg, title = "Top 10 Significant Unique Taxa: Microbiome Washout")
+
+ggsave("A2_LMM_DESeq2_Fresh.png", plot = deseq_fresh_taxa, width = 15, height = 8, dpi = 300)
+ggsave("A2_LMM_DESeq2_Ferm.png", plot = deseq_ferm_taxa, width = 15, height = 8, dpi = 300)
+ggsave("A2_LMM_DESeq2_Microbiome.png", plot = deseq_microb_taxa, width = 15, height = 8, dpi = 300)
+
+
+
+
+#facet plots
+emm_line_plot_taxa_facet <- function(emm_df, title = "LMM Top Taxa") {
+  ggplot(emm_df, aes(x = period, y = emmean)) +
+    geom_point(size = 3, color = "steelblue") +
+    geom_line(aes(group = 1), color = "steelblue") +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    facet_wrap(~ taxon_label, scales = "free_y") +
+    theme_bw() +
+    labs(
+      y = "Estimated VST Abundance",
+      x = "Period",
+      title = title
+    ) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+
+
+emm_line_plot_taxa_facet <- function(emm_df, facet_by = "Family_clean", title = "LMM Top Taxa") {
+  #build vector label
+  label_vec <- make_label_vector(emm_df)
+  
+  ggplot(emm_df, aes(x = period, y = emmean, group = taxon, color = taxon)) +
+    geom_point(size = 2) +
+    geom_line() +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+    theme_bw() +
+    labs(
+      y = "Estimated VST Abundance",
+      x = "Period",
+      title = title,
+      color = "Taxon"
+    ) +
+    scale_color_discrete(labels = parse(text = label_vec)) +
+    facet_wrap(as.formula(paste("~", facet_by)), scales = "free_y") + # facet by family (or other)
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+#generate plots and save
+deseq_fresh_facet  <- emm_line_plot_taxa_facet(emm_fresh_named, title = "Top 10 Significant Unique Taxa: Fresh")
+deseq_ferm_facet   <- emm_line_plot_taxa_facet(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
+deseq_microb_facet <- emm_line_plot_taxa_facet(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
+
+ggsave("A2_LMM_DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 12, height = 10, dpi = 300)
+ggsave("A2_LMM_DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 12, height = 10, dpi = 300)
+ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 12, height = 10, dpi = 300)
+
+
+
+#DESeq2 CSV File
+#function to merge taxa
 add_taxon_labels_safe <- function(lmm_results, physeq_obj) {
   #extract taxonomy table
   tax_df <- as.data.frame(tax_table(physeq_obj))
@@ -1204,80 +1358,22 @@ add_taxon_labels_safe <- function(lmm_results, physeq_obj) {
   return(emm_named)
 }
 
+#add taxon labels for CSV (function above keeps the OTU intact)
+emm_fresh_named <- add_taxon_labels_safe(lmm_results_fresh, ps_fresh) %>% mutate(Subset = "Fresh")
+emm_ferm_named <- add_taxon_labels_safe(lmm_results_ferm, ps_ferm) %>% mutate(Subset = "Fermented")
+emm_microb_named <- add_taxon_labels_safe(lmm_results_microb, ps_microb) %>% mutate(Subset = "Microbiome")
 
-#apply function to subset
-emm_fresh_named  <- add_taxon_labels_safe(lmm_results_fresh, ps_fresh)
-emm_ferm_named   <- add_taxon_labels_safe(lmm_results_ferm, ps_ferm)
-emm_microb_named <- add_taxon_labels_safe(lmm_results_microb, ps_microb)
-
-
-#line plot
-emm_line_plot_taxa <- function(emm_df, title = "LMM Top Taxa") {
-  ggplot(emm_df, aes(x = period, y = emmean, group = taxon_label, color = taxon_label)) +
-    geom_point(size = 2) +
-    geom_line() +
-    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
-    theme_bw() +
-    labs(
-      y = "Estimated VST Abundance",
-      x = "Period",
-      title = title,
-      color = "Taxon"
-    ) +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = "right"
-    )
-}
-
-#generate and save 
-deseq_fresh_taxa <- emm_line_plot_taxa(emm_fresh_named, title = "Top 10 Significant Taxa: Fresh")
-deseq_ferm_taxa   <- emm_line_plot_taxa(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
-deseq_microb_taxa <- emm_line_plot_taxa(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
-
-ggsave("A2_LMM_DESeq2_Fresh.png", plot = deseq_fresh_taxa, width = 15, height = 8, dpi = 300)
-ggsave("A2_LMM_DESeq2_Ferm.png", plot = deseq_ferm_taxa, width = 15, height = 8, dpi = 300)
-ggsave("A2_LMM_DESeq2_Microbiome.png", plot = deseq_microb_taxa, width = 15, height = 8, dpi = 300)
-
-
-#facet plots
-emm_line_plot_taxa_facet <- function(emm_df, title = "LMM Top Taxa") {
-  ggplot(emm_df, aes(x = period, y = emmean)) +
-    geom_point(size = 3, color = "steelblue") +
-    geom_line(aes(group = 1), color = "steelblue") +
-    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
-    facet_wrap(~ taxon_label, scales = "free_y") +
-    theme_bw() +
-    labs(
-      y = "Estimated VST Abundance",
-      x = "Period",
-      title = title
-    ) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-}
-
-#generate plots and save
-deseq_fresh_facet  <- emm_line_plot_taxa_facet(emm_fresh_named, title = "Top 10 Significant Taxa: Fresh")
-deseq_ferm_facet   <- emm_line_plot_taxa_facet(emm_ferm_named, title = "Top 10 Significant Taxa: Fermented")
-deseq_microb_facet <- emm_line_plot_taxa_facet(emm_microb_named, title = "Top 10 Significant Taxa: Microbiome Washout")
-
-ggsave("A2_LMM_DESeq2_Fresh_facet.png", plot = deseq_fresh_facet, width = 12, height = 10, dpi = 300)
-ggsave("A2_LMM_DESeq2_Ferm_facet.png", plot = deseq_ferm_facet, width = 12, height = 10, dpi = 300)
-ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 12, height = 10, dpi = 300)
-
-
-
-#test CSV file
-#add Subset column to each dataset
-emm_fresh_named <- emm_fresh_named %>% mutate(Subset = "Fresh")
-emm_ferm_named <- emm_ferm_named %>% mutate(Subset = "Fermented")
-emm_microb_named <- emm_microb_named %>% mutate(Subset = "Microbiome")
-
-#combine all datasets into one
+#CSV file
+#combine all dataset into one
 all_top_taxa_points <- bind_rows(emm_fresh_named, emm_ferm_named, emm_microb_named)
-
-#save combined dataset
+#save
 write.csv(all_top_taxa_points, "A2_LMM_DESeq2_Top10_Taxa_All_Subsets_Points.csv", row.names = FALSE)
+
+
+
+
+
+
 
 
 #### Figure Plots ####
@@ -1747,3 +1843,6 @@ posthoc_all <- bind_rows(
 #preview and export
 head(posthoc_all)
 write.csv(posthoc_all, "A2_LMM_Beta_posthoc_contrasts.csv", row.names = FALSE)
+
+
+##### DESeq2 LMM Plots #####
