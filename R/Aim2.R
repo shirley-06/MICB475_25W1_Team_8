@@ -1278,26 +1278,7 @@ ggsave("A2_LMM_DESeq2_Ferm.png", plot = deseq_ferm_taxa, width = 15, height = 8,
 ggsave("A2_LMM_DESeq2_Microbiome.png", plot = deseq_microb_taxa, width = 15, height = 8, dpi = 300)
 
 
-
-
 #facet plots
-emm_line_plot_taxa_facet <- function(emm_df, title = "LMM Top Taxa") {
-  ggplot(emm_df, aes(x = period, y = emmean)) +
-    geom_point(size = 3, color = "steelblue") +
-    geom_line(aes(group = 1), color = "steelblue") +
-    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
-    facet_wrap(~ taxon_label, scales = "free_y") +
-    theme_bw() +
-    labs(
-      y = "Estimated VST Abundance",
-      x = "Period",
-      title = title
-    ) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-}
-
-
-
 emm_line_plot_taxa_facet <- function(emm_df, title = "LMM Top Taxa") {
   
   ggplot(emm_df, aes(x = period, y = emmean, group = taxon)) +
@@ -1344,7 +1325,7 @@ ggsave("A2_LMM_DESeq2_Microbiome_facet.png", plot = deseq_microb_facet, width = 
 
 
 #DESeq2 CSV File
-#function to merge taxa
+#function to merge taxa (keeping all OTU info)
 add_taxon_labels_safe <- function(lmm_results, physeq_obj) {
   #extract taxonomy table
   tax_df <- as.data.frame(tax_table(physeq_obj))
