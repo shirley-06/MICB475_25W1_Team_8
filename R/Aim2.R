@@ -1747,13 +1747,3 @@ posthoc_all <- bind_rows(
 #preview and export
 head(posthoc_all)
 write.csv(posthoc_all, "A2_LMM_Beta_posthoc_contrasts.csv", row.names = FALSE)
-
-#will calculate the eemeans difference to base of previous period for all subset manually 
-#example:
-    #`VEG-Base Difference` = VEG - Base,
-    #`VEG-Base Direction` = ifelse(`VEG-Base Difference` == 0, "no change",
-    #                              ifelse(`VEG-Base Difference` > 0, "increase", "decrease")),
-    
-    #`WO1-VEG Difference` = WO1 - VEG,
-    #`WO1-VEG Direction` = ifelse(`WO1-VEG Difference` == 0, "no change",
-    #                             ifelse(`WO1-VEG Difference` > 0, "increase", "decrease")),
