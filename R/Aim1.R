@@ -788,26 +788,28 @@ combined_volcano <- (volcano_ctrl_base_veg | volcano_ctrl_wo1_ferm | volcano_ctr
 
 
 #function to get significant taxa with direction
-get_sig_taxa <- function(res_df, group1, group2, alpha = 0.05) {
+get_sig_taxa <- function(res_df, group1, group2, group_name, alpha = 0.05) {
   res_df %>%
-    filter(!is.na(padj)) %>%               # remove NA padj
-    filter(padj < alpha) %>%               # significant taxa
+    filter(!is.na(padj)) %>%
+    filter(padj < alpha) %>%
     mutate(
       Comparison = paste(group1, "vs", group2),
-      Enriched_in = ifelse(log2FoldChange > 0, group1, group2)
+      Enriched_in = ifelse(log2FoldChange > 0, group1, group2),
+      Group = group_name   # add this column
     ) %>%
-    select(Taxon = row, Comparison, log2FoldChange, padj, Enriched_in)
+    select(Taxon = row, Comparison, log2FoldChange, padj, Enriched_in, Group)
 }
 
+
 #healthy group
-sig_ctrl_veg  <- get_sig_taxa(res_ctrl_ab_VEG,  "VEG", "Base")
-sig_ctrl_ferm  <- get_sig_taxa(res_ctrl_ab_FERM,  "FERM", "WO1")
-sig_ctrl_veg_ferm  <- get_sig_taxa(res_ctrl_ab_VEG_FERM,  "FERM", "VEG")
+sig_ctrl_veg  <- get_sig_taxa(res_ctrl_ab_VEG,  "VEG", "Base", group_name = "Healthy")
+sig_ctrl_ferm  <- get_sig_taxa(res_ctrl_ab_FERM,  "FERM", "WO1", group_name = "Healthy")
+sig_ctrl_veg_ferm  <- get_sig_taxa(res_ctrl_ab_VEG_FERM,  "FERM", "VEG", group_name = "Healthy")
 
 #constipation group
-sig_const_veg <- get_sig_taxa(res_const_VEG, "VEG", "Base")
-sig_const_ferm <- get_sig_taxa(res_const_FERM, "FERM", "WO1")
-sig_const_veg_ferm <- get_sig_taxa(res_const_VEG_FERM, "FERM", "VEG")
+sig_const_veg <- get_sig_taxa(res_const_VEG, "VEG", "Base", group_name = "Constipation")
+sig_const_ferm <- get_sig_taxa(res_const_FERM, "FERM", "WO1", group_name = "Constipation")
+sig_const_veg_ferm <- get_sig_taxa(res_const_VEG_FERM, "FERM", "VEG", group_name = "Constipation")
 
 #combine all into one table
 sig_all <- bind_rows(
