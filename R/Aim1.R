@@ -569,7 +569,7 @@ get_sig_table <- function(deseq_res, group1, group2, alpha = 0.05) {
     filter(!is.na(padj)) %>%               # remove NA padj
     filter(padj < alpha) %>%               # significance threshold
     mutate(
-      Comparison = paste(group1, "vs", group2),
+      Comparison = paste(group2, "vs", group1),
       Enriched_in = ifelse(log2FoldChange > 0, group1, group2)
     ) %>%
     select(Taxon = row, Comparison, log2FoldChange, padj, Enriched_in)
@@ -745,22 +745,17 @@ dds_const_VEG_FERM <- DESeq(dds_const_VEG_FERM)
 res_const_VEG_FERM <- results(dds_const_VEG_FERM, contrast = c("period", "FERM", "VEG"), tidy = TRUE)
 
 #plot
-v1 <- plot_volcano(res_ctrl_ab_VEG,  "Healthy: VEG vs Base")
-v2 <- plot_volcano(res_ctrl_ab_FERM,  "Healthy: FERM vs WO1")
-v3 <- plot_volcano(res_ctrl_ab_VEG_FERM,  "Healthy: FERM vs VEG")
+v1 <- plot_volcano(res_ctrl_ab_VEG,  "Healthy: Base vs VEG")
+v2 <- plot_volcano(res_ctrl_ab_FERM,  "Healthy: WO1 vs FERM")
+v3 <- plot_volcano(res_ctrl_ab_VEG_FERM,  "Healthy: VEG vs FERM")
 
-v4 <- plot_volcano(res_const_VEG, "Constipation: VEG vs Base")
-v5 <- plot_volcano(res_const_FERM, "Constipation: FERM vs WO1")
-v6 <- plot_volcano(res_const_VEG_FERM, "Constipation: FERM vs VEG")
+v4 <- plot_volcano(res_const_VEG, "Constipation: Base vs VEG")
+v5 <- plot_volcano(res_const_FERM, "Constipation: WO1 vs FERM")
+v6 <- plot_volcano(res_const_VEG_FERM, "Constipation: VEG vs FERM")
 
 #combine into 6 panel
 combined_volcano <- (v1 | v2 | v3) /
   (v4 | v5 | v6)
-
-combined_volcano
-
-ggsave("A1_DESeq2_STRAT_volcano_combined.png", combined_volcano, width = 15, height = 10, dpi = 300)
-
 
 # Helper function to clean plots
 clean_volcano <- function(p) {
@@ -785,6 +780,7 @@ volcano_const_veg_ferm <- clean_volcano(v5)
 combined_volcano <- (volcano_ctrl_base_veg | volcano_ctrl_wo1_ferm | volcano_ctrl_veg_ferm) /
   (volcano_const_base_veg | volcano_const_wo1_ferm | volcano_const_veg_ferm)
 
+ggsave("A1_DESeq2_STRAT_volcano_combined.png", combined_volcano, width = 15, height = 10, dpi = 300)
 
 
 #function to get significant taxa with direction
@@ -801,7 +797,7 @@ get_sig_taxa <- function(res_df, group1, group2, otu_ids) {
     filter(!is.na(padj)) %>%
     filter(padj < 0.05) %>%
     mutate(
-      Comparison = paste(group1, "vs", group2),
+      Comparison = paste(group2, "vs", group1),
       Enriched_in = ifelse(log2FoldChange > 0, group1, group2)
     ) %>%
     select(Taxon, Comparison, log2FoldChange, padj, Enriched_in)
