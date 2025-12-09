@@ -680,6 +680,171 @@ ggsave("A1_DESeq2_Heatmap_Top10Taxa.png", Top10_heatmap, width = 15, height = 10
 
 
 
+###Group-stratified DESeq2 analyis
+
+#Subset phyloseq object by group
+#use +1 data
+#CTRL_AB
+ps_ctrl_ab <- subset_samples(ps_plus1, Group_new == "CTRL_AB")
+ps_ctrl_ab <- prune_taxa(taxa_sums(ps_ctrl_ab) > 0, ps_ctrl_ab)
+#Constipation
+ps_constipation <- subset_samples(ps_plus1, Group_new == "Constipation")
+ps_constipation <- prune_taxa(taxa_sums(ps_constipation) > 0, ps_constipation)
+
+
+#run DESeq2 for HEALTHY group
+#subset: Base vs VEG
+ps_ctrl_ab_veg <- subset_samples(ps_ctrl_ab, period %in% c("Base", "VEG"))
+
+dds_ctrl_ab_VEG <- phyloseq_to_deseq2(ps_ctrl_ab_veg, ~ period)
+dds_ctrl_ab_VEG <- DESeq(dds_ctrl_ab_VEG)
+
+res_ctrl_ab_VEG <- results(dds_ctrl_ab_VEG, contrast = c("period", "VEG", "Base"), tidy = TRUE)
+
+
+#subset: WO1 vs FERM
+ps_ctrl_ab_ferm <- subset_samples(ps_ctrl_ab, period %in% c("WO1", "FERM"))
+
+dds_ctrl_ab_FERM <- phyloseq_to_deseq2(ps_ctrl_ab_ferm, ~ period)
+dds_ctrl_ab_FERM <- DESeq(dds_ctrl_ab_FERM)
+
+res_ctrl_ab_FERM <- results(dds_ctrl_ab_FERM, contrast = c("period", "FERM", "WO1"), tidy = TRUE)
+
+# subset: VEG vs FERM
+ps_ctrl_ab_veg_ferm <- subset_samples(ps_ctrl_ab, period %in% c("VEG", "FERM"))
+
+dds_ctrl_ab_VEG_FERM <- phyloseq_to_deseq2(ps_ctrl_ab_veg_ferm, ~ period)
+dds_ctrl_ab_VEG_FERM <- DESeq(dds_ctrl_ab_VEG_FERM)
+
+res_ctrl_ab_VEG_FERM <- results(dds_ctrl_ab_VEG_FERM, contrast = c("period", "FERM", "VEG"), tidy = TRUE)
+
+
+#run DESEQ2 for constipation
+#subset: Base vs VEG
+ps_const_veg <- subset_samples(ps_constipation, period %in% c("Base", "VEG"))
+
+dds_const_VEG <- phyloseq_to_deseq2(ps_const_veg, ~ period)
+dds_const_VEG <- DESeq(dds_const_VEG)
+
+res_const_VEG <- results(dds_const_VEG, contrast = c("period", "VEG", "Base"), tidy = TRUE)
+
+#subset: WO1 vs FERM
+ps_const_ferm <- subset_samples(ps_constipation, period %in% c("WO1", "FERM"))
+
+dds_const_FERM <- phyloseq_to_deseq2(ps_const_ferm, ~ period)
+dds_const_FERM <- DESeq(dds_const_FERM)
+
+res_const_FERM <- results(dds_const_FERM, contrast = c("period", "FERM", "WO1"), tidy = TRUE)
+
+#subset: VEG vs FERM
+ps_const_veg_ferm <- subset_samples(ps_constipation, period %in% c("VEG", "FERM"))
+
+dds_const_VEG_FERM <- phyloseq_to_deseq2(ps_const_veg_ferm, ~ period)
+dds_const_VEG_FERM <- DESeq(dds_const_VEG_FERM)
+
+res_const_VEG_FERM <- results(dds_const_VEG_FERM, contrast = c("period", "FERM", "VEG"), tidy = TRUE)
+
+#plot
+v1 <- plot_volcano(res_ctrl_ab_VEG,  "Healthy: VEG vs Base")
+v2 <- plot_volcano(res_ctrl_ab_FERM,  "Healthy: FERM vs WO1")
+v3 <- plot_volcano(res_ctrl_ab_VEG_FERM,  "Healthy: FERM vs VEG")
+
+v4 <- plot_volcano(res_const_VEG, "Constipation: VEG vs Base")
+v5 <- plot_volcano(res_const_FERM, "Constipation: FERM vs WO1")
+v6 <- plot_volcano(res_const_VEG_FERM, "Constipation: FERM vs VEG")
+
+#combine into 6 panel
+combined_volcano <- (v1 | v2 | v3) /
+  (v4 | v5 | v6)
+
+combined_volcano
+
+ggsave("A1_DESeq2_STRAT_volcano_combined.png", combined_volcano, width = 15, height = 10, dpi = 300)
+
+
+# Helper function to clean plots
+clean_volcano <- function(p) {
+  p + 
+    theme(
+      panel.grid = element_blank(),        # remove grid
+      legend.position = "none",            # remove legend
+      panel.border = element_rect(color = "black", fill = NA, size = 1)  # add border
+    )
+}
+
+# Apply to all plots
+volcano_ctrl_base_veg  <- clean_volcano(v1)
+volcano_ctrl_wo1_ferm  <- clean_volcano(v2)
+volcano_ctrl_veg_ferm  <- clean_volcano(v3)
+
+volcano_const_base_veg <- clean_volcano(v4)
+volcano_const_wo1_ferm <- clean_volcano(v5)
+volcano_const_veg_ferm <- clean_volcano(v5)
+
+# Combine plots with patchwork
+combined_volcano <- (volcano_ctrl_base_veg | volcano_ctrl_wo1_ferm | volcano_ctrl_veg_ferm) /
+  (volcano_const_base_veg | volcano_const_wo1_ferm | volcano_const_veg_ferm)
+
+
+
+#function to get significant taxa with direction
+get_sig_taxa <- function(res_df, group1, group2, alpha = 0.05) {
+  res_df %>%
+    filter(!is.na(padj)) %>%               # remove NA padj
+    filter(padj < alpha) %>%               # significant taxa
+    mutate(
+      Comparison = paste(group1, "vs", group2),
+      Enriched_in = ifelse(log2FoldChange > 0, group1, group2)
+    ) %>%
+    select(Taxon = row, Comparison, log2FoldChange, padj, Enriched_in)
+}
+
+#healthy group
+sig_ctrl_veg  <- get_sig_taxa(res_ctrl_ab_VEG,  "VEG", "Base")
+sig_ctrl_ferm  <- get_sig_taxa(res_ctrl_ab_FERM,  "FERM", "WO1")
+sig_ctrl_veg_ferm  <- get_sig_taxa(res_ctrl_ab_VEG_FERM,  "FERM", "VEG")
+
+#constipation group
+sig_const_veg <- get_sig_taxa(res_const_VEG, "VEG", "Base")
+sig_const_ferm <- get_sig_taxa(res_const_FERM, "FERM", "WO1")
+sig_const_veg_ferm <- get_sig_taxa(res_const_VEG_FERM, "FERM", "VEG")
+
+#combine all into one table
+sig_all <- bind_rows(
+  sig_ctrl_base_veg, sig_ctrl_wo1_ferm, sig_ctrl_veg_ferm,
+  sig_const_base_veg, sig_const_wo1_ferm, sig_const_veg_ferm
+)
+
+#extract taxonomy table as a data.frame
+taxa_df <- as.data.frame(tax_table(ps_plus1))
+taxa_df$ASV <- rownames(taxa_df)  # add ASV/OTU IDs as a column
+
+#merge taxonomy with significant taxa
+sig_all_merged <- sig_all %>%
+  left_join(dplyr::rename(taxa_df, Taxon = ASV), by = "Taxon")
+
+#create a clean taxon label using Genus if available, otherwise Family
+sig_all_merged <- sig_all_merged %>%
+  mutate(
+    Genus = sub("^g__", "", Genus),
+    Family = sub("^f__", "", Family),
+    TaxonLabel = ifelse(!is.na(Genus) & Genus != "", Genus, Family)
+  )
+
+#preview
+head(sig_all_merged)
+
+#save as CSV
+write.csv(sig_all_merged, "A1_DESeq2_STRAT_significant_taxa_with_taxonomy.csv", row.names = FALSE)
+
+
+
+
+
+
+
+
+
 #### Manuscript Plots ####
 ##### Alpha Diversity #####
 #custom colors
