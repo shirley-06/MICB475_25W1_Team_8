@@ -788,44 +788,60 @@ combined_volcano <- (volcano_ctrl_base_veg | volcano_ctrl_wo1_ferm | volcano_ctr
 
 
 #function to get significant taxa with direction
-get_sig_taxa <- function(res_df, group1, group2, group_name, alpha = 0.05) {
+get_sig_taxa <- function(res_df, group1, group2, otu_ids) {
+  # Convert to data.frame if not already
+  res_df <- as.data.frame(res_df)
+  
+  # Add correct Taxon/ASV IDs from the original OTU table
+  res_df <- res_df %>%
+    mutate(Taxon = otu_ids[match(rownames(res_df), seq_along(otu_ids))])
+  
+  # Filter significant taxa and add comparison info
   res_df %>%
     filter(!is.na(padj)) %>%
-    filter(padj < alpha) %>%
+    filter(padj < 0.05) %>%
     mutate(
       Comparison = paste(group1, "vs", group2),
-      Enriched_in = ifelse(log2FoldChange > 0, group1, group2),
-      Group = group_name   # add this column
+      Enriched_in = ifelse(log2FoldChange > 0, group1, group2)
     ) %>%
-    select(Taxon = row, Comparison, log2FoldChange, padj, Enriched_in, Group)
+    select(Taxon, Comparison, log2FoldChange, padj, Enriched_in)
 }
 
 
+#get OTU/ASV IDs from phyloseq object
+otu_ids <- rownames(otu_table(ps_plus1))
+
+
+#add group column when building table
 #healthy group
-sig_ctrl_veg  <- get_sig_taxa(res_ctrl_ab_VEG,  "VEG", "Base", group_name = "Healthy")
-sig_ctrl_ferm  <- get_sig_taxa(res_ctrl_ab_FERM,  "FERM", "WO1", group_name = "Healthy")
-sig_ctrl_veg_ferm  <- get_sig_taxa(res_ctrl_ab_VEG_FERM,  "FERM", "VEG", group_name = "Healthy")
+sig_ctrl_veg  <- get_sig_taxa(res_ctrl_ab_VEG, "VEG", "Base", otu_ids) %>%
+  mutate(Group = "Healthy")
+
+sig_ctrl_ferm <- get_sig_taxa(res_ctrl_ab_FERM, "FERM", "WO1", otu_ids) %>%
+  mutate(Group = "Healthy")
+
+sig_ctrl_veg_ferm <- get_sig_taxa(res_ctrl_ab_VEG_FERM, "FERM", "VEG", otu_ids) %>%
+  mutate(Group = "Healthy")
 
 #constipation group
-sig_const_veg <- get_sig_taxa(res_const_VEG, "VEG", "Base", group_name = "Constipation")
-sig_const_ferm <- get_sig_taxa(res_const_FERM, "FERM", "WO1", group_name = "Constipation")
-sig_const_veg_ferm <- get_sig_taxa(res_const_VEG_FERM, "FERM", "VEG", group_name = "Constipation")
+sig_const_veg <- get_sig_taxa(res_const_VEG, "VEG", "Base", otu_ids) %>%
+  mutate(Group = "Constipation")
+sig_const_ferm <- get_sig_taxa(res_const_FERM, "FERM", "WO1", otu_ids) %>%
+  mutate(Group = "Constipation")
+sig_const_veg_ferm <- get_sig_taxa(res_const_VEG_FERM, "FERM", "VEG", otu_ids) %>%
+  mutate(Group = "Constipation")
 
 #combine all into one table
 sig_all <- bind_rows(
-  sig_ctrl_base_veg, sig_ctrl_wo1_ferm, sig_ctrl_veg_ferm,
-  sig_const_base_veg, sig_const_wo1_ferm, sig_const_veg_ferm
+  sig_ctrl_veg, sig_ctrl_ferm, sig_ctrl_veg_ferm,
+  sig_const_veg, sig_const_ferm, sig_const_veg_ferm
 )
-
-#extract taxonomy table as a data.frame
-taxa_df <- as.data.frame(tax_table(ps_plus1))
-taxa_df$ASV <- rownames(taxa_df)  # add ASV/OTU IDs as a column
 
 #merge taxonomy with significant taxa
 sig_all_merged <- sig_all %>%
   left_join(dplyr::rename(taxa_df, Taxon = ASV), by = "Taxon")
 
-#create a clean taxon label using Genus if available, otherwise Family
+#create taxon label
 sig_all_merged <- sig_all_merged %>%
   mutate(
     Genus = sub("^g__", "", Genus),
@@ -838,8 +854,6 @@ head(sig_all_merged)
 
 #save as CSV
 write.csv(sig_all_merged, "A1_DESeq2_STRAT_significant_taxa_with_taxonomy.csv", row.names = FALSE)
-
-
 
 
 
