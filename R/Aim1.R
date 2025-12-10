@@ -674,7 +674,7 @@ Top10_heatmap <- ggplot(heatmap_data, aes(x = Comparison, y = TaxonLabel, fill =
     title = "Top 10 Differentially Abundant Taxa Across Comparisons"
   ) +
   theme_minimal(base_size = 14) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
 ggsave("A1_DESeq2_Heatmap_Top10Taxa.png", Top10_heatmap, width = 15, height = 10, dpi = 300)
 
@@ -781,6 +781,7 @@ combined_volcano <- (volcano_ctrl_base_veg | volcano_ctrl_wo1_ferm | volcano_ctr
   (volcano_const_base_veg | volcano_const_wo1_ferm | volcano_const_veg_ferm)
 
 ggsave("A1_DESeq2_STRAT_volcano_combined.png", combined_volcano, width = 15, height = 10, dpi = 300)
+
 
 
 #function to get significant taxa with direction
