@@ -1,5 +1,4 @@
 #Install packages
-#BiocManager::install('ALDEx2')
 #install.packages("pheatmap")
 
 library(tidyverse)
@@ -11,6 +10,9 @@ library(picante)
 library(vegan)
 library(GGally)
 library(pheatmap)
+library(ggplot2)
+library(scales)
+library(stringr)
 
 #Loading files
 meta <- read_tsv(file="fermentation_metadata.tsv")
@@ -41,6 +43,8 @@ pathway_samp_ids <- pathway_samp_ids[-1,] %>%
   as.data.frame()
 colnames(pathway_samp_ids)[1] <- "sample_id"
 
+###This is not needed for every dataset##
+###Some sample ID discrepancies between our tables need to be resolved before using ggpicrust###
 
 ##Creating list of shared sample IDs betweeen metadata and metacyc, for P2/P4##
 common_ids_pwy <- intersect(pathway_samp_ids, meta_samp_ids_p2p4)
@@ -69,7 +73,17 @@ pwy_annotated <- pathway_annotation(pathway = "MetaCyc",
 #Checking number of significant hits#
 significant_pwy <- pwy_annotated %>% 
   filter(p_adjust < 0.05)
-#Did not include log FC - would only have 1 result for heatmap
+#Did not include log2 FC - would only have 1 result for heatmap
+
+##Plotting log2 FC with ggplot
+
+L2FC_metacyc <- ggplot(data = significant_pwy, aes(x=description, 
+                                             y=log2FoldChange)) +
+  geom_col(fill="steelblue") +
+  labs(x="Pathway Name", y= "Log2 Fold Change") +
+  coord_flip()
+
+ggsave("L2FC_plot.png", plot = L2FC_metacyc, width=9, height=5)
 
 ##Generating MetaCyc PCA plot##
 colnames(meta_removed_p2p4)[1] <- "sample_name"
@@ -109,8 +123,7 @@ pwy_heatmap <- pheatmap(pwy_stats,
 
 
 ####Running same protocol - filtered tables for FERM and VEG####
-
-#Using the same metadata objects from MetaCyc analysis
+#Using the same metadata objects from MetaCyc analysis#
 
 #KO sample IDs#
 ko_data <- column_to_rownames(ko_data, var = "function")
@@ -132,32 +145,41 @@ ko_removed_p2p4 <- ko_data[, common_ids_ko_list]
 
 ###Running differential analysis with LinDA###
 
-daa_results_ko_linda = pathway_daa(abundance = ko_removed_p2p4,
+daa_results_ko = pathway_daa(abundance = ko_removed_p2p4,
                                    metadata = meta_removed_p2p4_ko,
                                    group = "period",
                                    daa_method = "LinDA",
                                    select=NULL, reference=NULL)
 
-ko_annotated_linda <- pathway_annotation(pathway = "KO",
-                                   daa_results_df = daa_results_ko_linda,
+ko_annotated <- pathway_annotation(pathway = "KO",
+                                   daa_results_df = daa_results_ko,
                                    ko_to_kegg = TRUE)
 
+#saveRDS(ko_annotated, file = "ko_annotated.rds")
+
+ko_annotated = readRDS("ko_annotated.rds")
+
 #Checking number of significant hits#
-significant_ko <- ko_annotated_linda %>% 
-  filter(p_adjust < 0.05, abs(log2FoldChange)>2)
+significant_ko <- ko_annotated %>% 
+  filter(p_adjust < 5e-2, abs(log2FoldChange)>2)
 
-#Generating errorbar plot#
-#This feature is buggy - the fixed plugin isn't available
-ko_linda_errorbar <- pathway_errorbar(abundance = ko_removed_p2p4,
-                 daa_results_df = significant_ko,
-                 Group = meta_removed_p2p4_ko$period,
-                 ko_to_kegg = TRUE,
-                 p_values_threshold = 5e-2,
-                 p_value_bar = TRUE)
+#Manually separating duplicate uncharacterized proteins for visualization#
+significant_ko[10, "pathway_name"] <- "uncharacterized protein "
 
-ggsave("ko_linda_errorbar.png", plot=ko_linda_errorbar, width=6, height=6, units="in")
+##Generating log2 FC plot with ggplot##
 
-##Generating KO PCA plot##
+L2FC_ko <- ggplot(data = significant_ko, aes(x=pathway_name, 
+                                             y=log2FoldChange, 
+                                             fill=str_wrap(pathway_description, width=40))) +
+  geom_col() +
+  labs(x="Pathway Name", y= "Log2 Fold Change", fill="Pathway Description") +
+  guides(fill = guide_legend(byrow = TRUE)) + 
+  theme(legend.key.spacing.y = unit(0.2,"cm")) + #Adjusting spacing between legend keys#
+  coord_flip()
+
+ggsave("L2FC_ko.png", plot=L2FC_ko, width=12, height=6, units="in")
+
+##Generating KEGG PCA plot##
 colnames(meta_removed_p2p4_ko)[1] <- "sample_name"
 
 pca_ko <- pathway_pca(abundance = ko_removed_p2p4,
