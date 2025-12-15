@@ -1,15 +1,13 @@
 #Aim 2 - Longitudinal evaluation of diet-induced gut microbiome alterations and their implications for gut health
 
-#install lme4 packages (for Shirley's older R version)
-install.packages("lme4", type = "source")
-install.packages("lmerTest")
+#install lme4 packages (for an older R version)
+#install.packages("lme4", type = "source")
+#install.packages("lmerTest")
 
 #load library
 library(phyloseq)
 library(tidyverse)
-library(microbiome)
 library(vegan)
-library(ggplot2)
 library(DESeq2)
 library(lme4)
 library(lmerTest)
@@ -17,14 +15,26 @@ library(emmeans)
 library(pheatmap)
 library(ape)
 library(picante)
-library(ggsignif)
 library(ggpubr)
-library(dplyr)
-library(patchwork)
-library(tidyr)
-library(tibble)
 library(patchwork)
 library(grid)
+
+#for citations
+citation("phyloseq") #v.1.42.0
+citation("tidyverse") #v.2.0.0
+citation("vegan") #v.2.6-4
+citation("DESeq2") #v.1.38.3
+citation("lme4") #v.1.1-37
+citation("lmerTest") #v.3.1-3
+citation("emmeans") #v.2.0.0
+citation("pheatmap") #v.1.0.13
+citation("ape") #v.5.7-1
+citation("picante") #v.1.8.2
+citation("ggpubr") #v.0.6.2
+citation("patchwork") #v.1.3.2
+citation("grid") #v.4.2.3
+
+
 
 
 #### Load Data ####

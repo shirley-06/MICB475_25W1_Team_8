@@ -14,8 +14,18 @@ library(vegan)
 library (picante)
 library (ggpubr)
 library(DESeq2)
-library(forcats)
 library(patchwork)
+
+
+#for citations
+citation("phyloseq") #v.1.42.0
+citation("ape") #v.5.7-1
+citation("tidyverse") #v.2.0.0
+citation("vegan") #v.2.6-4
+citation("picante") #v.1.8.2
+citation("ggpubr") #v.0.6.2
+citation("DESeq2") #v1.38.3
+citation("patchwork") #v.1.3.2
 
 #### Generate Phyloseq Object ####
 ##### Import Data #####
